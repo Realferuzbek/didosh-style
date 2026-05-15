@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
+  --font-inter: 'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: #FFF8F5;
+    color: #2C1810;
+    font-family: var(--font-inter);
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+  }
+
+  /* Hide scrollbars but keep scroll functionality */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer components {
+  /* Button styles */
+  .btn-primary {
+    @apply bg-brand-deeprose text-white font-body font-medium
+           rounded-btn px-6 py-3.5 text-base
+           active:scale-95 transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed
+           w-full flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-brand-blush text-brand-deeprose font-body font-medium
+           rounded-btn px-6 py-3.5 text-base border border-brand-border
+           active:scale-95 transition-all duration-150
+           w-full flex items-center justify-center gap-2;
+  }
+
+  .btn-outline {
+    @apply border border-brand-deeprose text-brand-deeprose font-body font-medium
+           rounded-btn px-6 py-3.5 text-base
+           active:scale-95 transition-all duration-150
+           w-full flex items-center justify-center gap-2;
+  }
+
+  /* Input styles */
+  .input-field {
+    @apply w-full bg-white border border-brand-border rounded-btn px-4 py-3.5
+           font-body text-base text-brand-dark placeholder:text-brand-muted
+           focus:outline-none focus:border-brand-deeprose focus:ring-2
+           focus:ring-brand-deeprose/20 transition-all duration-150;
+  }
+
+  /* Card */
+  .product-card {
+    @apply bg-white rounded-card shadow-card overflow-hidden
+           transition-all duration-200 active:scale-[0.98];
+  }
+
+  /* Section heading */
+  .section-title {
+    @apply font-display text-2xl font-semibold text-brand-dark;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+           text-xs font-body font-medium;
+  }
+
+  .badge-sale {
+    @apply badge bg-brand-deeprose text-white;
+  }
+
+  .badge-new {
+    @apply badge bg-brand-gold text-white;
+  }
+
+  /* Page container */
+  .page-container {
+    @apply max-w-screen-xl mx-auto px-4;
+  }
+
+  /* Bottom nav safe spacing */
+  .page-with-nav {
+    @apply pb-[80px];
+  }
+}
+
+/* Loading skeleton animation */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #F0DDE6 25%, #FFF8F5 50%, #F0DDE6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
