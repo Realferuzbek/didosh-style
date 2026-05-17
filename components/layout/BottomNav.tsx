@@ -19,7 +19,7 @@ export default function BottomNav() {
   const totalItems = useCartStore((s) => s.totalItems())
 
   // Hide nav on admin pages and checkout
-  if (pathname.startsWith('/admin') || pathname.startsWith('/checkout') || pathname.startsWith('/order-success')) {
+  if (pathname.startsWith('/admin') || pathname.startsWith('/checkout') || pathname.startsWith('/order-success') || pathname.startsWith('/product')) {
     return null
   }
 
