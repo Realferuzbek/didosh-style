@@ -12,7 +12,6 @@ import type { Product } from "@/lib/types"
 export default function AdminProductsPage() {
   const router = useRouter()
   const [isAuthed, setIsAuthed] = useState(false)
-  const [isChecking, setIsChecking] = useState(true) // (unused, but kept for possible future loading state)
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -26,7 +25,6 @@ export default function AdminProductsPage() {
     } else {
       setIsAuthed(true)
     }
-    setIsChecking(false)
   }, [router])
 
   async function fetchProducts() {
@@ -186,6 +184,7 @@ export default function AdminProductsPage() {
                 <div className="bg-[#2C1F28] rounded-2xl p-3 flex items-center gap-3 border border-[#3D2A36] hover:border-[#5A4050] transition-colors">
                   {/* Image */}
                   {product.images?.[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={product.images[0]}
                       alt={product.name}

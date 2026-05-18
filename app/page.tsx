@@ -5,9 +5,28 @@ import FeaturedBanner from '@/components/home/FeaturedBanner'
 import HeroSection from '@/components/home/HeroSection'
 import ProductGrid from '@/components/products/ProductGrid'
 import WhatsAppButton from '@/components/ui/WhatsAppButton'
-import { MOCK_PRODUCTS } from '@/lib/mock-data'
+import { getAdminClient } from '@/lib/supabase/admin'
+import type { Product } from '@/lib/types'
 
-export default function HomePage() {
+async function getProducts(): Promise<Product[]> {
+  try {
+    const supabase = getAdminClient()
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, categories(name, slug)')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(12)
+    if (error || !data) return []
+    return data as Product[]
+  } catch {
+    return []
+  }
+}
+
+export default async function HomePage() {
+  const products = await getProducts()
+
   return (
     <>
       <AnnouncementBar />
@@ -29,7 +48,13 @@ export default function HomePage() {
               Hammasini ko&apos;ring →
             </Link>
           </div>
-          <ProductGrid products={MOCK_PRODUCTS} />
+          {products.length > 0 ? (
+            <ProductGrid products={products} />
+          ) : (
+            <div className="text-center py-12 text-brand-muted font-body text-sm">
+              Tez kunda yangi mahsulotlar qo&apos;shiladi ✨
+            </div>
+          )}
         </section>
         <FeaturedBanner />
       </main>

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
-import { MOCK_PRODUCTS } from '@/lib/mock-data';
+import type { Product } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import SearchBar from '@/components/catalog/SearchBar';
 import FilterBar from '@/components/catalog/FilterBar';
@@ -36,14 +35,18 @@ export default function CatalogPage() {
   const [priceMax, setPriceMax] = useState<number | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
+    fetch('/api/products')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setProducts(data) })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
   }, []);
 
   const filteredProducts = useMemo(() => {
-    let result = [...MOCK_PRODUCTS];
+    let result = [...products];
     // Search filter
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -88,7 +91,7 @@ export default function CatalogPage() {
         break;
     }
     return result;
-  }, [search, activeCategory, sortBy, selectedSizes, priceMin, priceMax]);
+  }, [search, activeCategory, sortBy, selectedSizes, priceMin, priceMax, products]);
 
   const hasActiveFilters =
     activeCategory !== 'barchasi' ||
