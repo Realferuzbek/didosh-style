@@ -277,7 +277,7 @@ export default function OrdersPage() {
         {isLoading ? (
           // Skeletons
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-[#2C1F28] rounded-2xl h-[110px] skeleton" />
+            <div key={i} className="rounded-2xl h-[110px] skeleton-dark border border-[#3D2A36]" />
           ))
         ) : filtered.length === 0 ? (
           // Empty state
@@ -394,7 +394,7 @@ export default function OrdersPage() {
                           {loadingDetail && expandedId === order.id ? (
                             <div className="space-y-2">
                               {[1, 2].map(i => (
-                                <div key={i} className="h-14 skeleton rounded-xl" />
+                                <div key={i} className="h-14 bg-[#2C1F28] animate-pulse rounded-xl border border-[#3D2A36]" />
                               ))}
                             </div>
                           ) : expandedOrder?.order_items?.length ? (

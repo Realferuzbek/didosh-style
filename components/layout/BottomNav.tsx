@@ -26,7 +26,8 @@ export default function BottomNav() {
     pathname.startsWith('/admin') ||
     pathname.startsWith('/checkout') ||
     pathname.startsWith('/order-success') ||
-    pathname.startsWith('/product')
+    pathname.startsWith('/product') ||
+    (pathname.startsWith('/cart') && mounted && totalItems > 0)
   ) return null
 
   return (

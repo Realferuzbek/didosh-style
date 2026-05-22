@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { X, ZoomIn } from 'lucide-react'
+import { X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -153,12 +153,7 @@ function ZoomViewer({ images, name, startIndex, onClose }: ZoomViewerProps) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Double-tap hint */}
-        {!isZoomed && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white/80 text-[11px] rounded-full px-3 py-1 pointer-events-none select-none">
-            2x bosing — kattalashtirish
-          </div>
-        )}
+
       </div>
 
       {/* Thumbnail row */}
@@ -291,19 +286,7 @@ export default function ImageGallery({ images, name }: ImageGalleryProps) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Zoom button (desktop) / tap hint overlay (mobile) */}
-        <button
-          onClick={() => setZoomOpen(true)}
-          className={cn(
-            'absolute bottom-10 right-3 z-10',
-            'bg-black/35 hover:bg-black/55 text-white rounded-full transition-colors',
-            'flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-body backdrop-blur-sm'
-          )}
-          aria-label="Rasmni kattalashtirish"
-        >
-          <ZoomIn size={13} />
-          <span className="hidden sm:inline">Kattalashtirish</span>
-        </button>
+
 
         {/* Dot pagination */}
         {images.length > 1 && (

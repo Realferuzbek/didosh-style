@@ -155,7 +155,7 @@ export default function AdminProductsPage() {
           Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="bg-[#2C1F28] rounded-2xl h-[72px] skeleton"
+              className="bg-[#2C1F28] rounded-2xl h-[72px] animate-pulse border border-[#3D2A36]"
             />
           ))
         ) : filtered.length === 0 ? (

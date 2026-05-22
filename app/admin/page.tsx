@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from 'react'
@@ -20,6 +19,47 @@ export default function AdminPage() {
     sessionStorage.removeItem('admin_auth')
     setIsAuthed(false)
   }
+
+  const [stats, setStats] = useState([
+    { label: 'Jami mahsulotlar', value: '...', icon: '👗' },
+    { label: 'Yangi buyurtmalar', value: '...', icon: '📦' },
+    { label: 'Bugun tushum', value: "...", icon: '💰' },
+    { label: 'Jami buyurtmalar', value: '...', icon: '📋' },
+  ])
+
+  useEffect(() => {
+    if (!isAuthed) return
+    async function loadStats() {
+      try {
+        const [prodRes, ordRes] = await Promise.all([
+          fetch('/api/admin/products'),
+          fetch('/api/admin/orders'),
+        ])
+        const products = prodRes.ok ? await prodRes.json() : []
+        const orders   = ordRes.ok  ? await ordRes.json()  : []
+        const today = new Date().toDateString()
+        const todayRevenue = Array.isArray(orders)
+          ? orders
+              .filter((o: {status: string; created_at: string}) =>
+                o.status === 'delivered' &&
+                new Date(o.created_at).toDateString() === today
+              )
+              .reduce((s: number, o: {total_amount: number}) => s + o.total_amount, 0)
+          : 0
+        const pending = Array.isArray(orders)
+          ? orders.filter((o: {status: string}) => o.status === 'pending').length
+          : 0
+        const formatted = todayRevenue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+        setStats([
+          { label: 'Jami mahsulotlar',  value: String(Array.isArray(products) ? products.length : 0), icon: '👗' },
+          { label: 'Yangi buyurtmalar', value: String(pending),                                        icon: '📦' },
+          { label: 'Bugun tushum',      value: `${formatted} so'm`,                                   icon: '💰' },
+          { label: 'Jami buyurtmalar',  value: String(Array.isArray(orders) ? orders.length : 0),     icon: '📋' },
+        ])
+      } catch { /* silent */ }
+    }
+    loadStats()
+  }, [isAuthed])
 
   // While checking auth state, show nothing (prevents flash)
   if (isChecking) {
@@ -44,12 +84,7 @@ export default function AdminPage() {
           </p>
           {/* Quick stats cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            {[
-              { label: "Jami mahsulotlar", value: "8", icon: "👗" },
-              { label: "Yangi buyurtmalar", value: "0", icon: "📦" },
-              { label: "Bugun tushum", value: "0 so'm", icon: "💰" },
-              { label: "Jami buyurtmalar", value: "0", icon: "📋" },
-            ].map((stat) => (
+            {stats.map((stat) => (
               <div
                 key={stat.label}
                 className="bg-[#2C1F28] rounded-2xl p-4 border border-[#3D2A36]"

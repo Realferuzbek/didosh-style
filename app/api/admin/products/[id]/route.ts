@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { verifyAdminSession, unauthorized } from '@/lib/admin-auth'
 
-// GET single product by id
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!verifyAdminSession(req)) return unauthorized()
   const supabase = getAdminClient()
   const { data, error } = await supabase
     .from('products')
@@ -13,8 +14,8 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   return NextResponse.json(data)
 }
 
-// PUT — full update of existing product
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!verifyAdminSession(req)) return unauthorized()
   try {
     const body = await req.json()
     const supabase = getAdminClient()
@@ -26,7 +27,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       .single()
     if (error) throw error
     return NextResponse.json(data)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Yangilashda xatolik' }, { status: 500 })
   }
 }

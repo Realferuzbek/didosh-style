@@ -71,6 +71,23 @@ export async function POST(req: NextRequest) {
 
     if (itemsError) throw itemsError
 
+    // Decrement stock for each product ordered
+    for (const item of orderItems) {
+      if (item.product_id) {
+        const { data: prod } = await supabase
+          .from('products')
+          .select('stock')
+          .eq('id', item.product_id)
+          .single()
+        if (prod) {
+          await supabase
+            .from('products')
+            .update({ stock: Math.max(0, prod.stock - item.quantity) })
+            .eq('id', item.product_id)
+        }
+      }
+    }
+
     return NextResponse.json({ order_number: order.order_number }, { status: 201 })
 
   } catch (error) {

@@ -118,3 +118,11 @@
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
 }
+
+/* Dark skeleton for admin pages */
+.skeleton-dark {
+  background: linear-gradient(90deg, #2C1F28 25%, #3D2A36 50%, #2C1F28 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}

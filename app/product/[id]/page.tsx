@@ -43,6 +43,9 @@ export default function ProductDetailPage() {
   const [addedToCart,   setAddedToCart]   = useState(false)
 
   const addItem        = useCartStore((s) => s.addItem)
+  const updateQuantity = useCartStore((s) => s.updateQuantity)
+  const removeItem     = useCartStore((s) => s.removeItem)
+  const cartItems      = useCartStore((s) => s.items)
   const isFavorite     = useFavoritesStore((s) => s.isFavorite(id))
   const toggleFavorite = useFavoritesStore((s) => s.toggle)
 
@@ -101,6 +104,27 @@ export default function ProductDetailPage() {
   if (!product)  return null
 
   const similarProducts = allProducts.filter(p => p.id !== product.id).slice(0, 6)
+
+  // How many of this product+size are already in cart
+  const cartItem = selectedSize && product
+    ? cartItems.find(i => i.product_id === product.id && i.size === selectedSize)
+    : null
+  const cartQuantity = cartItem?.quantity ?? 0
+
+  function handleIncrement() {
+    if (!cartItem || !selectedSize) return
+    if (!product) return
+    updateQuantity(product.id, selectedSize, cartItem.quantity + 1)
+  }
+  function handleDecrement() {
+    if (!cartItem || !selectedSize) return
+    if (!product) return
+    if (cartItem.quantity <= 1) {
+      removeItem(product.id, selectedSize)
+    } else {
+      updateQuantity(product.id, selectedSize, cartItem.quantity - 1)
+    }
+  }
 
   return (
     <>
@@ -205,6 +229,9 @@ export default function ProductDetailPage() {
           onAddToCart={handleAddToCart}
           addedToCart={addedToCart}
           disabled={false}
+          cartQuantity={cartQuantity}
+          onIncrement={handleIncrement}
+          onDecrement={handleDecrement}
         />
       </div>
     </>
