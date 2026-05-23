@@ -158,7 +158,6 @@ export default function ProfilePage() {
           <button className="w-full btn-primary" onClick={() => setShowOTPModal(true)}>
             📱 Telefon orqali kirish
           </button>
-          <p className="text-xs text-brand-muted mt-3 italic">Parol shart emas — faqat SMS kod</p>
         </motion.div>
       )}
 

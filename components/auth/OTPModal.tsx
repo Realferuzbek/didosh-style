@@ -159,6 +159,30 @@ export default function OTPModal({
     }
   }
 
+  async function handleTelegramSend() {
+    if (phoneDigits.length < 9) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneInput, via: 'telegram' }),
+      })
+      const result = await res.json()
+      if (res.status === 429) { setError(result.error); return }
+      if (result.telegram && result.botLink) {
+        window.open(result.botLink, '_blank')
+        setStep('otp')
+        setDevCode(null)
+      }
+    } catch {
+      setError('Xatolik yuz berdi')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   async function handleVerify(codeOverride?: string) {
     const code = codeOverride ?? otpDigits.join('')
     if (isLoading || code.length < 6 || submittedCodeRef.current === code) return
@@ -272,7 +296,7 @@ export default function OTPModal({
           <motion.div
             role="dialog"
             aria-modal="true"
-            className="fixed bottom-0 left-0 right-0 md:relative md:m-auto md:max-w-md bg-white rounded-t-3xl md:rounded-3xl px-6 pt-8 pb-10 shadow-2xl max-h-[90dvh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 md:relative md:m-auto md:max-w-md bg-white rounded-t-3xl md:rounded-3xl px-6 pt-8 pb-[88px] md:pb-10 shadow-2xl max-h-[90dvh] overflow-y-auto"
             initial={{ y: '100%', opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
@@ -321,21 +345,29 @@ export default function OTPModal({
                   <DevCodeHint devCode={devCode} />
                 </div>
 
-                <button
-                  type="button"
-                  className="mt-5 w-full btn-primary"
-                  disabled={!canSend}
-                  onClick={handleSendOTP}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      Yuborilmoqda...
-                    </>
-                  ) : (
-                    'Kodni yuborish →'
-                  )}
-                </button>
+                <div className="mt-5 flex flex-col gap-3">
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 font-body font-medium text-[15px] text-white"
+                    style={{ background: 'linear-gradient(135deg, #229ED9, #1A8FC0)' }}
+                    disabled={isLoading}
+                    onClick={handleTelegramSend}
+                  >
+                    {/* Telegram SVG icon (paper plane, white, 20px) */}
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.824 3.368a1.25 1.25 0 0 1 .176 1.44l-5.25 10.5a1.25 1.25 0 0 1-2.176.08l-2.02-3.37-3.37-2.02a1.25 1.25 0 0 1 .08-2.176l10.5-5.25a1.25 1.25 0 0 1 1.56.796ZM8.5 11.5l2 3.333 5.25-10.5-10.5 5.25L8.5 11.5Z" fill="white"/>
+                    </svg>
+                    Telegram orqali kodni olish
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl py-3 font-body font-medium text-[13px] text-brand-muted bg-brand-blush border border-brand-border cursor-not-allowed opacity-60"
+                    onClick={handleSendOTP}
+                    disabled={true}
+                  >
+                    📱 SMS orqali olish (tez kunda)
+                  </button>
+                </div>
               </div>
             )}
 
@@ -346,6 +378,9 @@ export default function OTPModal({
                   <h2 className="font-display text-2xl text-brand-dark">Kodni kiriting</h2>
                   <p className="font-body text-sm text-brand-muted mt-1">
                     {maskPhone(phoneInput)} raqamiga kod yuborildi
+                  </p>
+                  <p className="font-body text-[12px] text-[#229ED9] mt-1">
+                    Telegram botidan kodni oling 💬
                   </p>
                 </div>
 

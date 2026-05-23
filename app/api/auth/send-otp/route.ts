@@ -9,27 +9,30 @@ export const dynamic = 'force-dynamic'
 function normalizeUzbekPhone(phone: unknown): string | null {
   if (typeof phone !== 'string') return null
   const digits = phone.replace(/\D/g, '')
-  if (digits.length < 10 || digits.length > 12) return null
+  if (digits.length < 9 || digits.length > 12) return null
   if (digits.startsWith('998') && digits.length === 12) return `+${digits}`
   if (digits.startsWith('0') && digits.length === 10) return `+998${digits.slice(1)}`
+  if (digits.length === 9) return `+998${digits}`
   return null
 }
 
-function isEskizPlaceholder(): boolean {
-  return process.env.ESKIZ_EMAIL?.startsWith('PLACEHOLDER') ?? false
-}
+const isDevMode = process.env.NODE_ENV === 'development'
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone } = await req.json()
+    const body = await req.json()
+    const { phone, via } = body
+    const useTelegram = via === 'telegram'
+
     const normalizedPhone = normalizeUzbekPhone(phone)
     if (!normalizedPhone) {
       return NextResponse.json({ error: "To'g'ri telefon raqam kiriting" }, { status: 400 })
     }
 
     const supabase = getAdminClient()
+
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString()
-    const { data: recentOtp, error: rateLimitError } = await supabase
+    const { data: recentOtp } = await supabase
       .from('otp_codes')
       .select('id')
       .eq('phone', normalizedPhone)
@@ -37,7 +40,6 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .maybeSingle()
 
-    if (rateLimitError) throw rateLimitError
     if (recentOtp) {
       return NextResponse.json({ error: 'Iltimos, 1 daqiqa kuting' }, { status: 429 })
     }
@@ -54,13 +56,25 @@ export async function POST(req: NextRequest) {
 
     if (insertError) throw insertError
 
+    if (useTelegram) {
+      const digits = normalizedPhone.replace(/\D/g, '')
+      return NextResponse.json({
+        success: true,
+        telegram: true,
+        botLink: `https://t.me/${process.env.TELEGRAM_BOT_USERNAME ?? 'DidoshStyleBot'}?start=${digits}`,
+      })
+    }
+
     const sent = await sendOTPSms(normalizedPhone, otp)
     if (!sent) {
-      if (isEskizPlaceholder()) {
+      if (isDevMode) {
         console.log(`[DEV] OTP for ${normalizedPhone}: ${otp}`)
         return NextResponse.json({ success: true, dev_code: otp })
       }
-      return NextResponse.json({ error: 'SMS yuborishda xatolik' }, { status: 500 })
+      return NextResponse.json(
+        { error: "SMS yuborishda xatolik. Telegram orqali olishni sinab ko'ring." },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ success: true })
