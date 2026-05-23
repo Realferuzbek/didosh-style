@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, FormEvent } from 'react'
+import LocationPicker, { type LocationData } from '@/components/checkout/LocationPicker'
 import { motion } from 'framer-motion'
 import { useCartStore } from '@/lib/store'
 import { useRouter } from 'next/navigation'
@@ -45,10 +46,11 @@ export default function CheckoutForm() {
     address: '',
     notes: '',
   })
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [errors, setErrors] = useState<FormErrors & { location?: string }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showOTPModal, setShowOTPModal] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(false)
+  const [location, setLocation] = useState<LocationData | null>(null)
 
   useEffect(() => {
     if (authPhone) {
@@ -57,17 +59,15 @@ export default function CheckoutForm() {
   }, [authPhone])
 
   function validate(): boolean {
-    const newErrors: FormErrors = {}
+    const newErrors: FormErrors & { location?: string } = {}
     if (!form.name.trim() || form.name.trim().length < 2)
       newErrors.name = "Ism kamida 2 ta harf bo'lishi kerak"
     const digits = form.phone.replace(/\D/g, '')
     if (digits.length < 12)
       newErrors.phone = "To'g'ri telefon raqam kiriting"
-    if (!form.city.trim())
-      newErrors.city = 'Shahar yoki tumanni kiriting'
-    if (!form.address.trim() || form.address.trim().length < 10)
-      newErrors.address = "To'liq manzilni kiriting (kamida 10 ta belgi)"
+    if (!location) newErrors.location = 'Manzilni belgilang'
     setErrors(newErrors)
+    if (Object.keys(newErrors).length > 0) { toast.error('Barcha maydonlarni to\'ldiring', { position: 'top-center' }); return false; }
     return Object.keys(newErrors).length === 0
   }
 
@@ -98,8 +98,11 @@ export default function CheckoutForm() {
         body: JSON.stringify({
           customer_name: form.name.trim(),
           customer_phone: form.phone,
-          delivery_city: form.city.trim(),
-          delivery_address: form.address.trim(),
+          delivery_city: location?.city ?? '',
+          delivery_address: location?.address ?? '',
+          delivery_lat: location?.lat ?? null,
+          delivery_lng: location?.lng ?? null,
+          delivery_maps_link: location?.mapsLink ?? null,
           notes: form.notes.trim() || null,
           items: cartItems,
         }),
@@ -132,7 +135,7 @@ export default function CheckoutForm() {
 
   return (
     <>
-    <form className="space-y-5 pb-8" onSubmit={handleSubmit} autoComplete="on">
+    <form className="space-y-5 pb-8" onSubmit={handleSubmit} autoComplete="on" noValidate>
 
       {/* Ism Familiya */}
       <div className="space-y-1.5">
@@ -183,44 +186,16 @@ export default function CheckoutForm() {
         )}
       </div>
 
-      {/* Shahar */}
-      <div className="space-y-1.5">
-        <label className="text-[13px] font-medium text-brand-dark font-body">
-          Shahar / Tuman <span className="text-brand-deeprose">*</span>
+      {/* Yetkazib berish manzili */}
+      <div>
+        <label className="block text-sm font-medium text-brand-dark mb-2">
+          Yetkazib berish manzili <span className="text-brand-deeprose">*</span>
         </label>
-        <input
-          className={cn('input-field', errors.city && 'border-red-400 focus:border-red-400 focus:ring-red-200')}
-          type="text"
-          autoComplete="address-level2"
-          placeholder="Toshkent, Yunusobod"
-          value={form.city}
-          onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+        <LocationPicker
+          value={location}
+          onChange={setLocation}
+          error={errors.location}
         />
-        {errors.city && (
-          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-red-400">
-            {errors.city}
-          </motion.p>
-        )}
-      </div>
-
-      {/* Manzil */}
-      <div className="space-y-1.5">
-        <label className="text-[13px] font-medium text-brand-dark font-body">
-          {"To'liq manzil"} <span className="text-brand-deeprose">*</span>
-        </label>
-        <textarea
-          className={cn('input-field', errors.address && 'border-red-400 focus:border-red-400 focus:ring-red-200')}
-          autoComplete="street-address"
-          rows={3}
-          placeholder={"Ko'cha, uy raqami, mo'ljal"}
-          value={form.address}
-          onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-        />
-        {errors.address && (
-          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-red-400">
-            {errors.address}
-          </motion.p>
-        )}
       </div>
 
       {/* Izoh */}

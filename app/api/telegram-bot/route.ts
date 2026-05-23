@@ -5,16 +5,36 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? ''
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://didoshstyle.netlify.app'
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
 
-async function sendTelegramMessage(chatId: number, text: string) {
-  await fetch(`${TELEGRAM_API}/sendMessage`, {
+// ── Telegram API helpers ────────────────────────────────
+async function sendMessage(chatId: number, text: string, inlineKeyboard?: object[][]) {
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    text,
+    parse_mode: 'HTML',
+  }
+  if (inlineKeyboard) {
+    body.reply_markup = { inline_keyboard: inlineKeyboard }
+  }
+  const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+async function answerCallbackQuery(callbackQueryId: string, text: string) {
+  await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: false }),
   })
 }
 
+// ── Phone normalization ─────────────────────────────────
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
   if (digits.startsWith('998') && digits.length === 12) return `+${digits}`
@@ -22,9 +42,26 @@ function normalizePhone(raw: string): string {
   return `+${digits}`
 }
 
+// ── Main handler ────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+
+    // Handle inline button presses
+    if (body.callback_query) {
+      const cq = body.callback_query
+      await answerCallbackQuery(cq.id, '')
+
+      if (cq.data?.startsWith('copy_')) {
+        const code = cq.data.replace('copy_', '')
+        await sendMessage(
+          cq.message.chat.id,
+          `✅ Kod: <code>${code}</code>\n\nQuyidagi kodni saytda kiriting.`
+        )
+      }
+      return NextResponse.json({ ok: true })
+    }
+
     const message = body?.message
     if (!message) return NextResponse.json({ ok: true })
 
@@ -32,50 +69,78 @@ export async function POST(req: NextRequest) {
     const text: string = message.text ?? ''
     const firstName: string = message.from?.first_name ?? 'Aziz foydalanuvchi'
 
-    // Handle /start command with phone parameter
-    if (text.startsWith('/start')) {
-      const parts = text.split(' ')
-      const phoneParam = parts[1] // phone number passed as start parameter
+    if (!text.startsWith('/start')) return NextResponse.json({ ok: true })
 
-      if (!phoneParam) {
-        await sendTelegramMessage(
-          chatId,
-          `Assalomu alaykum, ${firstName}! 🌸\n\nSiz <b>Didosh Style</b> do'konining tasdiqlash botisiz.\n\nTasdiqlash kodini olish uchun saytdan telefon raqamingizni kiriting.`
-        )
-        return NextResponse.json({ ok: true })
-      }
+    // Parse start parameter: format is "998XXXXXXXXX_returnpath"
+    const parts = text.split(' ')
+    const startParam = parts[1] ?? ''
 
-      const phone = normalizePhone(phoneParam)
-      const supabase = getAdminClient()
-
-      // Find the most recent valid OTP for this phone
-      const { data: otpRecord } = await supabase
-        .from('otp_codes')
-        .select('code, expires_at')
-        .eq('phone', phone)
-        .eq('used', false)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!otpRecord) {
-        await sendTelegramMessage(
-          chatId,
-          `❌ Kod topilmadi yoki muddati o'tgan.\n\nIltimos, saytga qayting va yangi kod so'rang.`
-        )
-        return NextResponse.json({ ok: true })
-      }
-
-      await sendTelegramMessage(
+    // Welcome message for users with no parameter
+    if (!startParam) {
+      await sendMessage(
         chatId,
-        `🌸 <b>Didosh Style</b> tasdiqlash kodi:\n\n<b>${otpRecord.code}</b>\n\n⏱ Kod 5 daqiqa ichida amal qiladi.\nKodni hech kimga bermang!`
+        `🌸 Assalomu alaykum, <b>${firstName}</b>!\n\nSiz <b>Didosh Style</b> do'konining tasdiqlash botisiz.\n\nBuyurtma berish yoki profilingizga kirish uchun saytga o'ting:`,
+        [[{ text: '🛍 Saytga o\'tish', url: SITE_URL }]]
       )
+      return NextResponse.json({ ok: true })
     }
+
+    // Parse phone and return path
+    const underscoreIdx = startParam.indexOf('_')
+    const rawPhone = underscoreIdx > 0 ? startParam.slice(0, underscoreIdx) : startParam
+    const returnPath = underscoreIdx > 0 ? startParam.slice(underscoreIdx + 1) : 'profile'
+    const phone = normalizePhone(rawPhone)
+
+    const supabase = getAdminClient()
+
+    // Find valid OTP
+    const { data: otpRecord } = await supabase
+      .from('otp_codes')
+      .select('code, expires_at, id')
+      .eq('phone', phone)
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (!otpRecord) {
+      // Code expired or not found
+      await sendMessage(
+        chatId,
+        `⏰ <b>Kod topilmadi yoki muddati tugagan.</b>\n\nYangi kod olish uchun saytga qayting va telefon raqamingizni qayta kiriting.`,
+        [[{ text: '🔄 Yangi kod olish', url: `${SITE_URL}/profile` }]]
+      )
+      return NextResponse.json({ ok: true })
+    }
+
+    const code = otpRecord.code
+    // Build auto-verify deep link: /verify?p=PHONE_DIGITS&c=CODE&r=RETURNPATH
+    const phoneDigits = phone.replace(/\D/g, '')
+    const verifyUrl = `${SITE_URL}/verify?p=${phoneDigits}&c=${code}&r=${returnPath}`
+
+    // Minutes remaining
+    const expiresAt = new Date(otpRecord.expires_at)
+    const minsLeft = Math.max(1, Math.round((expiresAt.getTime() - Date.now()) / 60000))
+
+    await sendMessage(
+      chatId,
+      `🌸 <b>Didosh Style</b> — tasdiqlash kodi\n\n` +
+      `🔐 Sizning kodingiz:\n\n` +
+      `<b><code>${code}</code></b>\n\n` +
+      `Kodni saytda kiriting <i>YOKI</i> quyidagi tugmani bosing — avtomatik tasdiqlanadi!\n\n` +
+      `⏱ Kod ${minsLeft} daqiqada amal qiladi.\n` +
+      `🔒 Kodni hech kimga bermang.`,
+      [
+        [{ text: `✅ Saytda avtomatik tasdiqlash`, url: verifyUrl }],
+        [{ text: `📋 Kodni ko'rsatish: ${code}`, callback_data: `copy_${code}` }],
+        [{ text: `🛍 Saytga qaytish`, url: `${SITE_URL}/${returnPath}` }],
+      ]
+    )
 
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[Telegram Bot]', err)
-    return NextResponse.json({ ok: true }) // Always 200 to Telegram
+    return NextResponse.json({ ok: true })
   }
 }

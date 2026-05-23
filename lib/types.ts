@@ -31,6 +31,9 @@ export interface Order {
   customer_phone: string
   delivery_city: string
   delivery_address: string
+  delivery_lat?: number | null
+  delivery_lng?: number | null
+  delivery_maps_link?: string | null
   notes: string | null
   total_amount: number
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'

@@ -21,7 +21,9 @@ const isDevMode = process.env.NODE_ENV === 'development'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { phone, via } = body
+    // via: 'telegram' | 'sms'
+    // returnPath: 'profile' | 'checkout' etc. (used in Telegram deep link)
+    const { phone, via, returnPath = 'profile' } = body
     const useTelegram = via === 'telegram'
 
     const normalizedPhone = normalizeUzbekPhone(phone)
@@ -31,6 +33,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = getAdminClient()
 
+    // Rate limit: 1 OTP per minute
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString()
     const { data: recentOtp } = await supabase
       .from('otp_codes')
@@ -56,15 +59,20 @@ export async function POST(req: NextRequest) {
 
     if (insertError) throw insertError
 
+    // Telegram flow: bot delivers the OTP via deep link
     if (useTelegram) {
-      const digits = normalizedPhone.replace(/\D/g, '')
+      const digits = normalizedPhone.replace(/\D/g, '') // 998XXXXXXXXX
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? 'DidoshStyleBot'
+      // Encode: PHONE_RETURNPATH (e.g. "998931019521_checkout")
+      const startParam = `${digits}_${returnPath}`
       return NextResponse.json({
         success: true,
         telegram: true,
-        botLink: `https://t.me/${process.env.TELEGRAM_BOT_USERNAME ?? 'DidoshStyleBot'}?start=${digits}`,
+        botLink: `https://t.me/${botUsername}?start=${startParam}`,
       })
     }
 
+    // SMS flow
     const sent = await sendOTPSms(normalizedPhone, otp)
     if (!sent) {
       if (isDevMode) {

@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { customer_name, customer_phone, delivery_city, delivery_address, notes, items } = body
+  const { customer_name, customer_phone, delivery_city, delivery_address, notes, items, delivery_lat, delivery_lng, delivery_maps_link } = body
 
     // Resolve authenticated user if token provided
     let userId: string | null = null
@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
         customer_phone,
         delivery_city,
         delivery_address,
+        delivery_lat: delivery_lat ?? null,
+        delivery_lng: delivery_lng ?? null,
+        delivery_maps_link: delivery_maps_link ?? null,
         notes: notes || null,
         total_amount: totalAmount,
         status: 'pending',

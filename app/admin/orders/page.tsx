@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronDown, Phone, MessageCircle, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronDown, Phone, MessageCircle, Search, X, MapPin } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import AdminNav from '@/components/admin/AdminNav'
@@ -357,6 +357,16 @@ export default function OrdersPage() {
                     <p className="text-[#9B7B85] text-[12px] line-clamp-1">
                       📍 {order.delivery_city} · {order.delivery_address}
                     </p>
+                    {order.delivery_maps_link && (
+                      <a
+                        href={order.delivery_maps_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#229ED9] text-xs mt-1 hover:underline"
+                      >
+                        <MapPin size={11} /> Xaritada ko&apos;rish ↗
+                      </a>
+                    )}
 
                     {/* Row 4: total + expand */}
                     <div className="flex items-center justify-between pt-1">
