@@ -1,14 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash } from 'crypto'
 import { verifyAdminDeviceToken } from '@/lib/auth'
 
 export const runtime = 'nodejs'
-
-// Derive a session token from the admin password — stateless, no storage needed
-function makeSessionToken(password: string): string {
-  return createHash('sha256').update(`didosh-admin:${password}`).digest('hex')
-}
 
 export async function POST(req: NextRequest) {
   try {
