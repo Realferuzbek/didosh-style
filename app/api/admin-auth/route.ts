@@ -1,5 +1,9 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
+import { verifyAdminDeviceToken } from '@/lib/auth'
+
+export const runtime = 'nodejs'
 
 // Derive a session token from the admin password — stateless, no storage needed
 function makeSessionToken(password: string): string {
@@ -8,7 +12,8 @@ function makeSessionToken(password: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { password } = await req.json()
+    const body = await req.json()
+    const { password, deviceToken } = body
     if (!password || typeof password !== 'string') {
       return NextResponse.json({ ok: false }, { status: 400 })
     }
@@ -18,17 +23,13 @@ export async function POST(req: NextRequest) {
       await new Promise(r => setTimeout(r, 300))
       return NextResponse.json({ ok: false }, { status: 401 })
     }
-    const token = makeSessionToken(correct)
-    const res = NextResponse.json({ ok: true })
-    // Set httpOnly cookie — JS can't read it, prevents XSS token theft
-    res.cookies.set('admin_session', token, {
-      httpOnly: true,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60 * 24, // 24 hours
-      // secure: true in production (Netlify sets this automatically via HTTPS)
-    })
-    return res
+    // Check device token
+    let needsOtp = true
+    if (deviceToken) {
+      const deviceValid = await verifyAdminDeviceToken(deviceToken)
+      if (deviceValid) needsOtp = false
+    }
+    return NextResponse.json({ success: true, needsOtp }, { status: 200 })
   } catch {
     return NextResponse.json({ ok: false }, { status: 500 })
   }

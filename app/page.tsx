@@ -3,8 +3,9 @@ import AnnouncementBar from '@/components/layout/AnnouncementBar'
 import CategoryPills from '@/components/home/CategoryPills'
 import FeaturedBanner from '@/components/home/FeaturedBanner'
 import HeroSection from '@/components/home/HeroSection'
+import StatsSection from '@/components/home/StatsSection'
 import ProductGrid from '@/components/products/ProductGrid'
-import WhatsAppButton from '@/components/ui/WhatsAppButton'
+import ContactHub from '@/components/ui/WhatsAppButton'
 import { getAdminClient } from '@/lib/supabase/admin'
 import type { Product } from '@/lib/types'
 
@@ -57,8 +58,9 @@ export default async function HomePage() {
           )}
         </section>
         <FeaturedBanner />
+        <StatsSection />
       </main>
-      <WhatsAppButton />
+      <ContactHub />
     </>
   )
 }

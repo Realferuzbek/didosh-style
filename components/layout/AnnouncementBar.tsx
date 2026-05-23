@@ -1,6 +1,7 @@
 const MARQUEE_ITEMS = [
   '🌸 Yangi kolleksiya keldi',
   "300,000 so'mdan bepul yetkazib berish",
+  '✦ Moda o\'tadi — did qoladi ✦',
   'Eksklyuziv dizaynlar faqat bizda',
   'Didosh Style — siz uchun',
 ]
@@ -29,7 +30,7 @@ export default function AnnouncementBar() {
           }
 
           .announcement-track {
-            animation: announcement-marquee 28s linear infinite;
+            animation: announcement-marquee 48s linear infinite;
           }
 
           @keyframes shimmerBg {

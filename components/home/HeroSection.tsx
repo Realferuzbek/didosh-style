@@ -116,6 +116,15 @@ export default function HeroSection() {
           Elegantlik · Zamonaviylik · Siz uchun
         </motion.p>
 
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.85, ease: 'easeOut' }}
+          className="mt-3 font-display italic text-[18px] md:text-[22px] text-brand-deeprose/80 tracking-wide"
+        >
+          Moda o&apos;tadi — did qoladi
+        </motion.p>
+
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

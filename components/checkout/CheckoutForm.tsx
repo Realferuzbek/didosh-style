@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { useCartStore } from '@/lib/store'
 import { useRouter } from 'next/navigation'
@@ -8,6 +8,8 @@ import { formatPrice } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { ShoppingBag } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import OTPModal from '@/components/auth/OTPModal'
+import { useAuth } from '@/lib/useAuth'
 
 type FormData = {
   name: string
@@ -34,6 +36,7 @@ export default function CheckoutForm() {
   const cartItems = useCartStore((s) => s.items)
   const totalPrice = useCartStore((s) => s.totalPrice())
   const clearCart = useCartStore((s) => s.clearCart)
+  const { token, phone: authPhone, isAuthenticated, login } = useAuth()
 
   const [form, setForm] = useState<FormData>({
     name: '',
@@ -44,6 +47,14 @@ export default function CheckoutForm() {
   })
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showOTPModal, setShowOTPModal] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState(false)
+
+  useEffect(() => {
+    if (authPhone) {
+      setForm(f => f.phone ? f : { ...f, phone: formatPhone(authPhone) })
+    }
+  }, [authPhone])
 
   function validate(): boolean {
     const newErrors: FormErrors = {}
@@ -63,11 +74,27 @@ export default function CheckoutForm() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!validate()) return
+
+    // If not authenticated, show OTP modal first
+    if (!isAuthenticated) {
+      setPendingSubmit(true)
+      setShowOTPModal(true)
+      return
+    }
+
+    // Already authenticated — submit directly
+    await submitOrder(token)
+  }
+
+  async function submitOrder(userToken: string | null) {
     setIsSubmitting(true)
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userToken ? { 'Authorization': `Bearer ${userToken}` } : {}),
+        },
         body: JSON.stringify({
           customer_name: form.name.trim(),
           customer_phone: form.phone,
@@ -91,7 +118,20 @@ export default function CheckoutForm() {
     }
   }
 
+  async function handleAuthSuccess(newToken: string, userPhone: string) {
+    login(newToken, userPhone)
+    setShowOTPModal(false)
+    if (pendingSubmit) {
+      setPendingSubmit(false)
+      // Small delay to let modal close gracefully
+      setTimeout(() => {
+        void submitOrder(newToken)
+      }, 400)
+    }
+  }
+
   return (
+    <>
     <form className="space-y-5 pb-8" onSubmit={handleSubmit} autoComplete="on">
 
       {/* Ism Familiya */}
@@ -119,6 +159,14 @@ export default function CheckoutForm() {
         <label className="text-[13px] font-medium text-brand-dark font-body">
           Telefon raqam <span className="text-brand-deeprose">*</span>
         </label>
+        {isAuthenticated && authPhone && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mb-2">
+            <span className="text-green-500 text-sm">✓</span>
+            <span className="font-body text-xs text-green-700">
+              Tasdiqlangan: {formatPhone(authPhone)}
+            </span>
+          </div>
+        )}
         <input
           className={cn('input-field', errors.phone && 'border-red-400 focus:border-red-400 focus:ring-red-200')}
           type="tel"
@@ -230,5 +278,14 @@ export default function CheckoutForm() {
       </div>
 
     </form>
+    <OTPModal
+      isOpen={showOTPModal}
+      onClose={() => { setShowOTPModal(false); setPendingSubmit(false) }}
+      onSuccess={handleAuthSuccess}
+      initialPhone={form.phone}
+      title="Buyurtma berish"
+      subtitle="Buyurtmangizni tasdiqlash uchun telefon raqamingizni kiriting"
+    />
+    </>
   )
 }

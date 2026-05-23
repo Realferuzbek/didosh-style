@@ -19,6 +19,7 @@ export interface Product {
   stock: number
   is_featured: boolean
   is_active: boolean
+  instagram_reel_url?: string | null
   created_at: string
   categories?: Category
 }

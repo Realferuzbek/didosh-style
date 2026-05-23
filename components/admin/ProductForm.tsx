@@ -22,6 +22,7 @@ export interface ProductPayload {
   stock: number
   is_featured: boolean
   is_active: boolean
+  instagram_reel_url: string | null
 }
 
 interface ProductFormProps {
@@ -137,6 +138,7 @@ export default function ProductForm({
   const [stock,         setStock]         = useState(initialData?.stock?.toString() ?? '0')
   const [isFeatured,    setIsFeatured]    = useState(initialData?.is_featured ?? false)
   const [isActive,      setIsActive]      = useState(initialData?.is_active ?? true)
+  const [reelUrl,       setReelUrl]       = useState<string>(initialData?.instagram_reel_url ?? '')
   const [categories,    setCategories]    = useState<Category[]>([])
   const [uploadingIdx,  setUploadingIdx]  = useState<number | null>(null)
 
@@ -240,6 +242,7 @@ export default function ProductForm({
       stock:          Math.max(0, Number(stock)),
       is_featured:    isFeatured,
       is_active:      isActive,
+      instagram_reel_url: reelUrl.trim() || null,
     })
   }
 
@@ -368,7 +371,49 @@ export default function ProductForm({
         </div>
       </Section>
 
-      {/* ── 3. Pricing ───────────────────────────────────────────────────── */}
+      {/* ── 3. Instagram Reel ────────────────────────────────────────────── */}
+      <Section title="Instagram Reel (ixtiyoriy)">
+        <div className="space-y-2">
+          <label className="block text-[12px] text-[#9B7B85] font-body">
+            Mahsulot uchun Instagram reel havolasi (ixtiyoriy)
+          </label>
+          <div className="relative">
+            <input
+              type="url"
+              value={reelUrl}
+              onChange={(e) => setReelUrl(e.target.value)}
+              placeholder="https://www.instagram.com/reel/..."
+              className="input-field text-[13px] pr-10"
+            />
+            {reelUrl && (
+              <button
+                type="button"
+                onClick={() => setReelUrl('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9B7B85] hover:text-white transition-colors"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+          {reelUrl && (() => {
+            const match = reelUrl.match(/\/(?:reel|p)\/([A-Za-z0-9_-]+)/)
+            return match ? (
+              <p className="text-[11px] text-green-400 font-body">
+                ✓ Reel aniqlandi: {match[1]}
+              </p>
+            ) : (
+              <p className="text-[11px] text-amber-400 font-body">
+                ⚠ To&apos;g&apos;ri Instagram reel havolasini kiriting
+              </p>
+            )
+          })()}
+          <p className="text-[11px] text-[#9B7B85] font-body">
+            Masalan: https://www.instagram.com/reel/ABC123xyz/
+          </p>
+        </div>
+      </Section>
+
+      {/* ── 4. Pricing ───────────────────────────────────────────────────── */}
       <Section title="💰 Narx">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
@@ -404,7 +449,7 @@ export default function ProductForm({
         )}
       </Section>
 
-      {/* ── 4. Sizes ─────────────────────────────────────────────────────── */}
+      {/* ── 5. Sizes ─────────────────────────────────────────────────────── */}
       <Section title="📏 O'lchamlar *">
         <div className="flex flex-wrap gap-2">
           {SIZE_OPTIONS.map(size => (
@@ -430,7 +475,7 @@ export default function ProductForm({
         )}
       </Section>
 
-      {/* ── 5. Colors ────────────────────────────────────────────────────── */}
+      {/* ── 6. Colors ────────────────────────────────────────────────────── */}
       <Section title="🎨 Ranglar">
         <div className="flex gap-2">
           <input
@@ -475,7 +520,7 @@ export default function ProductForm({
         )}
       </Section>
 
-      {/* ── 6. Stock & toggles ───────────────────────────────────────────── */}
+      {/* ── 7. Stock & toggles ───────────────────────────────────────────── */}
       <Section title="📦 Ombor va sozlamalar">
         <div className="space-y-1.5">
           <label className="text-[13px] text-[#9B7B85]">Ombordagi miqdor *</label>

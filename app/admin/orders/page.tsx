@@ -152,7 +152,7 @@ export default function OrdersPage() {
     pending:   orders.filter(o => o.status === 'pending').length,
     delivered: orders.filter(o => o.status === 'delivered').length,
     revenue:   orders
-      .filter(o => o.status !== 'cancelled')
+      .filter(o => o.status === 'delivered')
       .reduce((s, o) => s + o.total_amount, 0),
   }), [orders])
 
@@ -249,27 +249,27 @@ export default function OrdersPage() {
             )
           })}
         </div>
-      </div>
 
-      {/* ── Stats row ─────────────────────────────────────────────────── */}
-      <div className="flex gap-2 px-4 py-3 overflow-x-auto hide-scrollbar">
-        {[
-          { icon: '📦', label: 'Jami', value: stats.total, cls: 'text-[#9B7B85]' },
-          { icon: '⏳', label: 'Yangi', value: stats.pending, cls: stats.pending > 0 ? 'text-amber-400' : 'text-[#9B7B85]' },
-          { icon: '✅', label: 'Yetkazildi', value: stats.delivered, cls: 'text-green-400' },
-          { icon: '💰', label: 'Tushum', value: formatPrice(stats.revenue), cls: 'text-green-400' },
-        ].map(s => (
-          <div
-            key={s.label}
-            className="bg-[#2C1F28] border border-[#3D2A36] rounded-2xl px-3 py-2 shrink-0 flex items-center gap-2"
-          >
-            <span className="text-base">{s.icon}</span>
-            <div>
-              <div className={cn('text-sm font-semibold', s.cls)}>{s.value}</div>
-              <div className="text-[10px] text-[#5A4050]">{s.label}</div>
+        {/* ── Stats row ─────────────────────────────────────────────────── */}
+        <div className="flex gap-2 px-4 pt-2 pb-3 overflow-x-auto hide-scrollbar border-t border-[#3D2A36]">
+          {[
+            { icon: '📦', label: 'Jami', value: stats.total, cls: 'text-[#9B7B85]' },
+            { icon: '⏳', label: 'Yangi', value: stats.pending, cls: stats.pending > 0 ? 'text-amber-400' : 'text-[#9B7B85]' },
+            { icon: '✅', label: 'Yetkazildi', value: stats.delivered, cls: 'text-green-400' },
+            { icon: '💰', label: 'Tushum', value: formatPrice(stats.revenue), cls: 'text-green-400' },
+          ].map(s => (
+            <div
+              key={s.label}
+              className="bg-[#2C1F28] border border-[#3D2A36] rounded-2xl px-3 py-2 shrink-0 flex items-center gap-2"
+            >
+              <span className="text-base">{s.icon}</span>
+              <div>
+                <div className={cn('text-sm font-semibold', s.cls)}>{s.value}</div>
+                <div className="text-[10px] text-[#5A4050]">{s.label}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* ── Order list ────────────────────────────────────────────────── */}
@@ -490,13 +490,13 @@ export default function OrdersPage() {
                               Qo&apos;ng&apos;iroq
                             </a>
                             <a
-                              href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`}
+                              href={`https://t.me/+${order.customer_phone.replace(/\D/g, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex-1 flex items-center justify-center gap-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/30 rounded-xl py-2.5 text-[#25D366] text-[13px] font-medium transition-colors"
+                              className="flex-1 flex items-center justify-center gap-2 bg-[#229ED9]/20 hover:bg-[#229ED9]/30 border border-[#229ED9]/30 rounded-xl py-2.5 text-[#229ED9] text-[13px] font-medium transition-colors"
                             >
                               <MessageCircle size={15} />
-                              WhatsApp
+                              Telegram
                             </a>
                             {order.status !== 'cancelled' && order.status !== 'delivered' && (
                               <button

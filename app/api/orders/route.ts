@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin'
+import { verifyUserToken, extractBearerToken } from '@/lib/auth'
+
+export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { customer_name, customer_phone, delivery_city, delivery_address, notes, items } = body
+
+    // Resolve authenticated user if token provided
+    let userId: string | null = null
+    const authHeader = req.headers.get('Authorization')
+    if (authHeader) {
+      const bearerToken = extractBearerToken(authHeader)
+      if (bearerToken) {
+        const payload = await verifyUserToken(bearerToken)
+        if (payload) userId = payload.userId
+      }
+    }
 
     // Validate required fields
     if (!customer_name || !customer_phone || !delivery_city || !delivery_address || !items?.length) {
@@ -38,6 +52,7 @@ export async function POST(req: NextRequest) {
         notes: notes || null,
         total_amount: totalAmount,
         status: 'pending',
+        user_id: userId,
       })
       .select('id, order_number')
       .single()
