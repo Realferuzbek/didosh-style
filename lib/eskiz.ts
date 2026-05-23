@@ -1,14 +1,15 @@
+export const runtime = 'nodejs'
 const ESKIZ_BASE = 'https://notify.eskiz.uz/api'
 
 async function getEskizToken(): Promise<string | null> {
   try {
+    const form = new FormData()
+    form.append('email', process.env.ESKIZ_EMAIL ?? '')
+    form.append('password', process.env.ESKIZ_PASSWORD ?? '')
+
     const res = await fetch(`${ESKIZ_BASE}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: process.env.ESKIZ_EMAIL,
-        password: process.env.ESKIZ_PASSWORD,
-      }),
+      body: form,
       cache: 'no-store',
     })
     const data = await res.json()
@@ -34,18 +35,16 @@ export async function sendOTPSms(phone: string, code: string): Promise<boolean> 
     if (!token) return false
     const formattedPhone = formatUzbekPhone(phone)
     const message = `Didosh Style: tasdiqlash kodi ${code}. 5 daqiqa ichida kiring.`
+    const form = new FormData()
+    form.append('mobile_phone', formattedPhone)
+    form.append('message', message)
+    form.append('from', process.env.ESKIZ_SENDER ?? '4546')
+    form.append('callback_url', '')
+
     const res = await fetch(`${ESKIZ_BASE}/message/sms/send`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        mobile_phone: formattedPhone,
-        message,
-        from: process.env.ESKIZ_SENDER ?? '4546',
-        callback_url: '',
-      }),
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
       cache: 'no-store',
     })
     const data = await res.json()
@@ -69,18 +68,16 @@ export async function sendOrderStatusSms(phone: string, orderNumber: string, sta
     const token = await getEskizToken()
     if (!token) return false
     const formattedPhone = formatUzbekPhone(phone)
+    const form = new FormData()
+    form.append('mobile_phone', formattedPhone)
+    form.append('message', message)
+    form.append('from', process.env.ESKIZ_SENDER ?? '4546')
+    form.append('callback_url', '')
+
     const res = await fetch(`${ESKIZ_BASE}/message/sms/send`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        mobile_phone: formattedPhone,
-        message,
-        from: process.env.ESKIZ_SENDER ?? '4546',
-        callback_url: '',
-      }),
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
       cache: 'no-store',
     })
     const data = await res.json()
