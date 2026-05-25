@@ -9,6 +9,9 @@ import ContactHub from '@/components/ui/WhatsAppButton'
 import { getAdminClient } from '@/lib/supabase/admin'
 import type { Product } from '@/lib/types'
 
+// Revalidate home page data every 60 seconds (ISR)
+export const revalidate = 60
+
 async function getProducts(): Promise<Product[]> {
   try {
     const supabase = getAdminClient()

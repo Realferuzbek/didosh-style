@@ -1,4 +1,11 @@
 export const runtime = 'nodejs'
+
+// ── Eskiz SMS Feature Flag ────────────────────────────────────────────────────
+// Set ESKIZ_ENABLED=true in Netlify env vars once your MCHJ/YATT is registered
+// and Eskiz credentials are approved. Until then, SMS is gracefully disabled.
+// The Telegram OTP flow remains fully functional regardless of this flag.
+const ESKIZ_ENABLED = process.env.ESKIZ_ENABLED === 'true'
+
 const ESKIZ_BASE = 'https://notify.eskiz.uz/api'
 
 async function getEskizToken(): Promise<string | null> {
@@ -30,6 +37,7 @@ function formatUzbekPhone(phone: string): string {
 }
 
 export async function sendOTPSms(phone: string, code: string): Promise<boolean> {
+  if (!ESKIZ_ENABLED) return false  // SMS disabled until MCHJ/YATT registration
   try {
     const token = await getEskizToken()
     if (!token) return false

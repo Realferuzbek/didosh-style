@@ -1,16 +1,21 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-const getSecret = () => new TextEncoder().encode(
-  process.env.JWT_SECRET ?? 'fallback_secret_change_in_prod'
-)
+function getSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error(
+      '[auth] JWT_SECRET is not set. Add it to .env.local and Netlify environment variables.',
+    )
+  }
+  return new TextEncoder().encode(secret)
+}
 
-// OTP Generation
+// ── OTP ──────────────────────────────────────────────────────────────────────
 export function generateOTP(): string {
-  // 6-digit numeric code
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-// User JWT (30 days)
+// ── User JWT (30 days) ────────────────────────────────────────────────────────
 export async function signUserToken(userId: string, phone: string): Promise<string> {
   return new SignJWT({ userId, phone, type: 'user' })
     .setProtectedHeader({ alg: 'HS256' })
@@ -19,7 +24,9 @@ export async function signUserToken(userId: string, phone: string): Promise<stri
     .sign(getSecret())
 }
 
-export async function verifyUserToken(token: string): Promise<{ userId: string; phone: string } | null> {
+export async function verifyUserToken(
+  token: string,
+): Promise<{ userId: string; phone: string } | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret())
     if (payload.type !== 'user') return null
@@ -29,25 +36,7 @@ export async function verifyUserToken(token: string): Promise<{ userId: string; 
   }
 }
 
-// Admin device token (7 days)
-export async function signAdminDeviceToken(): Promise<string> {
-  return new SignJWT({ type: 'admin_device' })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(getSecret())
-}
-
-export async function verifyAdminDeviceToken(token: string): Promise<boolean> {
-  try {
-    const { payload } = await jwtVerify(token, getSecret())
-    return payload.type === 'admin_device'
-  } catch {
-    return false
-  }
-}
-
-// Helper: extract bearer token from Authorization header
+// ── Helper ────────────────────────────────────────────────────────────────────
 export function extractBearerToken(authHeader: string | null): string | null {
   if (!authHeader?.startsWith('Bearer ')) return null
   return authHeader.slice(7)

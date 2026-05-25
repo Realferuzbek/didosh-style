@@ -4,20 +4,16 @@ import { getAdminClient } from '@/lib/supabase/admin'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? ''
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://didoshstyle.netlify.app'
+const BOT_TOKEN    = process.env.TELEGRAM_BOT_TOKEN ?? ''
+const SITE_URL     = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://didoshstyle.netlify.app'
+// Set this in Netlify env vars + when registering the webhook via setWebhook API
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET ?? ''
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`
 
-// ── Telegram API helpers ────────────────────────────────
+// ── Telegram API helpers ──────────────────────────────────────────────────────
 async function sendMessage(chatId: number, text: string, inlineKeyboard?: object[][]) {
-  const body: Record<string, unknown> = {
-    chat_id: chatId,
-    text,
-    parse_mode: 'HTML',
-  }
-  if (inlineKeyboard) {
-    body.reply_markup = { inline_keyboard: inlineKeyboard }
-  }
+  const body: Record<string, unknown> = { chat_id: chatId, text, parse_mode: 'HTML' }
+  if (inlineKeyboard) body.reply_markup = { inline_keyboard: inlineKeyboard }
   const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -34,7 +30,7 @@ async function answerCallbackQuery(callbackQueryId: string, text: string) {
   })
 }
 
-// ── Phone normalization ─────────────────────────────────
+// ── Phone normalization ───────────────────────────────────────────────────────
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
   if (digits.startsWith('998') && digits.length === 12) return `+${digits}`
@@ -42,8 +38,20 @@ function normalizePhone(raw: string): string {
   return `+${digits}`
 }
 
-// ── Main handler ────────────────────────────────────────
+// ── Main handler ──────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  // ── Verify Telegram webhook signature ────────────────────────────────────
+  // Set TELEGRAM_WEBHOOK_SECRET in Netlify + pass it to setWebhook API:
+  // https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL>&secret_token=<SECRET>
+  if (WEBHOOK_SECRET) {
+    const incomingSecret = req.headers.get('x-telegram-bot-api-secret-token')
+    if (!incomingSecret || incomingSecret !== WEBHOOK_SECRET) {
+      // Return 200 so Telegram doesn't retry — but do not process the payload
+      console.warn('[telegram-bot] Rejected request with invalid webhook secret')
+      return NextResponse.json({ ok: false }, { status: 403 })
+    }
+  }
+
   try {
     const body = await req.json()
 
@@ -51,12 +59,11 @@ export async function POST(req: NextRequest) {
     if (body.callback_query) {
       const cq = body.callback_query
       await answerCallbackQuery(cq.id, '')
-
       if (cq.data?.startsWith('copy_')) {
         const code = cq.data.replace('copy_', '')
         await sendMessage(
           cq.message.chat.id,
-          `✅ Kod: <code>${code}</code>\n\nQuyidagi kodni saytda kiriting.`
+          `✅ Kod: <code>${code}</code>\n\nQuyidagi kodni saytda kiriting.`,
         )
       }
       return NextResponse.json({ ok: true })
@@ -65,35 +72,30 @@ export async function POST(req: NextRequest) {
     const message = body?.message
     if (!message) return NextResponse.json({ ok: true })
 
-    const chatId: number = message.chat?.id
-    const text: string = message.text ?? ''
+    const chatId: number    = message.chat?.id
+    const text: string      = message.text ?? ''
     const firstName: string = message.from?.first_name ?? 'Aziz foydalanuvchi'
 
     if (!text.startsWith('/start')) return NextResponse.json({ ok: true })
 
-    // Parse start parameter: format is "998XXXXXXXXX_returnpath"
-    const parts = text.split(' ')
-    const startParam = parts[1] ?? ''
+    const startParam = text.split(' ')[1] ?? ''
 
-    // Welcome message for users with no parameter
     if (!startParam) {
       await sendMessage(
         chatId,
         `🌸 Assalomu alaykum, <b>${firstName}</b>!\n\nSiz <b>Didosh Style</b> do'konining tasdiqlash botisiz.\n\nBuyurtma berish yoki profilingizga kirish uchun saytga o'ting:`,
-        [[{ text: '🛍 Saytga o\'tish', url: SITE_URL }]]
+        [[{ text: "🛍 Saytga o'tish", url: SITE_URL }]],
       )
       return NextResponse.json({ ok: true })
     }
 
-    // Parse phone and return path
     const underscoreIdx = startParam.indexOf('_')
-    const rawPhone = underscoreIdx > 0 ? startParam.slice(0, underscoreIdx) : startParam
-    const returnPath = underscoreIdx > 0 ? startParam.slice(underscoreIdx + 1) : 'profile'
-    const phone = normalizePhone(rawPhone)
+    const rawPhone      = underscoreIdx > 0 ? startParam.slice(0, underscoreIdx) : startParam
+    const returnPath    = underscoreIdx > 0 ? startParam.slice(underscoreIdx + 1) : 'profile'
+    const phone         = normalizePhone(rawPhone)
 
     const supabase = getAdminClient()
 
-    // Find valid OTP
     const { data: otpRecord } = await supabase
       .from('otp_codes')
       .select('code, expires_at, id')
@@ -105,23 +107,18 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (!otpRecord) {
-      // Code expired or not found
       await sendMessage(
         chatId,
         `⏰ <b>Kod topilmadi yoki muddati tugagan.</b>\n\nYangi kod olish uchun saytga qayting va telefon raqamingizni qayta kiriting.`,
-        [[{ text: '🔄 Yangi kod olish', url: `${SITE_URL}/profile` }]]
+        [[{ text: '🔄 Yangi kod olish', url: `${SITE_URL}/profile` }]],
       )
       return NextResponse.json({ ok: true })
     }
 
-    const code = otpRecord.code
-    // Build auto-verify deep link: /verify?p=PHONE_DIGITS&c=CODE&r=RETURNPATH
+    const code        = otpRecord.code
     const phoneDigits = phone.replace(/\D/g, '')
-    const verifyUrl = `${SITE_URL}/verify?p=${phoneDigits}&c=${code}&r=${returnPath}`
-
-    // Minutes remaining
-    const expiresAt = new Date(otpRecord.expires_at)
-    const minsLeft = Math.max(1, Math.round((expiresAt.getTime() - Date.now()) / 60000))
+    const verifyUrl   = `${SITE_URL}/verify?p=${phoneDigits}&c=${code}&r=${returnPath}`
+    const minsLeft    = Math.max(1, Math.round((new Date(otpRecord.expires_at).getTime() - Date.now()) / 60000))
 
     await sendMessage(
       chatId,
@@ -135,7 +132,7 @@ export async function POST(req: NextRequest) {
         [{ text: `✅ Saytda avtomatik tasdiqlash`, url: verifyUrl }],
         [{ text: `📋 Kodni ko'rsatish: ${code}`, callback_data: `copy_${code}` }],
         [{ text: `🛍 Saytga qaytish`, url: `${SITE_URL}/${returnPath}` }],
-      ]
+      ],
     )
 
     return NextResponse.json({ ok: true })

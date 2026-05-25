@@ -18,6 +18,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!verifyAdminSession(req)) return unauthorized()
   try {
     const body = await req.json()
+
+    // Validate Instagram URL domain if provided
+    if (body.instagram_reel_url) {
+      try {
+        const parsed = new URL(body.instagram_reel_url)
+        if (!['www.instagram.com', 'instagram.com'].includes(parsed.hostname)) {
+          return NextResponse.json({ error: "Instagram URL noto'g'ri" }, { status: 400 })
+        }
+      } catch {
+        return NextResponse.json({ error: "Instagram URL noto'g'ri" }, { status: 400 })
+      }
+    }
+
     const supabase = getAdminClient()
     const { data, error } = await supabase
       .from('products')

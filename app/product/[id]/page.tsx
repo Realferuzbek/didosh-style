@@ -13,6 +13,7 @@ import ColorSelector from '@/components/product/ColorSelector'
 import SizeSelector from '@/components/product/SizeSelector'
 import DescriptionAccordion from '@/components/product/DescriptionAccordion'
 import SimilarProducts from '@/components/product/SimilarProducts'
+import InstagramReel from '@/components/product/InstagramReel'
 import AddToCartBar from '@/components/product/AddToCartBar'
 import toast from 'react-hot-toast'
 import type { Product } from '@/lib/types'
@@ -42,7 +43,7 @@ export default function ProductDetailPage() {
   const id = params?.id as string
 
   const [product,       setProduct]       = useState<Product | null>(null)
-  const [allProducts,   setAllProducts]   = useState<Product[]>([])
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([])
   const [isLoading,     setIsLoading]     = useState(true)
   const [selectedSize,  setSelectedSize]  = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
@@ -59,15 +60,16 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (!id) return
     let cancelled = false
+    // Fetch product detail and same-category similar products in parallel
     Promise.all([
       fetch(`/api/products/${id}`).then(r => r.ok ? r.json() : null),
-      fetch('/api/products').then(r => r.json()).catch(() => []),
-    ]).then(([prod, all]) => {
+      fetch(`/api/products/${id}/similar`).then(r => r.json()).catch(() => []),
+    ]).then(([prod, similar]) => {
       if (cancelled) return
       if (!prod) { router.replace('/catalog'); return }
       setProduct(prod)
       setSelectedColor(prod.colors?.[0] ?? null)
-      setAllProducts(Array.isArray(all) ? all : [])
+      setSimilarProducts(Array.isArray(similar) ? similar : [])
     }).finally(() => { if (!cancelled) setIsLoading(false) })
     return () => { cancelled = true }
   }, [id, router])
@@ -110,7 +112,6 @@ export default function ProductDetailPage() {
   if (isLoading) return <ProductSkeleton />
   if (!product)  return null
 
-  const similarProducts = allProducts.filter(p => p.id !== product.id).slice(0, 6)
 
   // How many of this product+size are already in cart
   const cartItem = selectedSize && product
@@ -238,28 +239,8 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  {/* Reel iframe */}
-                  <div className="relative mx-auto overflow-hidden rounded-3xl border border-brand-border shadow-sm"
-                       style={{ maxWidth: '320px' }}>
-                    <div style={{ paddingBottom: '177.77%', position: 'relative' }}>
-                      <iframe
-                        src={`https://www.instagram.com/reel/${shortcode}/embed/`}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          height: '100%',
-                          border: 'none',
-                        }}
-                        scrolling="no"
-                        allowTransparency={true}
-                        allowFullScreen={true}
-                        loading="lazy"
-                        title="Instagram Reel"
-                      />
-                    </div>
-                  </div>
+                  {/* Reel iframe — lazy loaded when scrolled into view */}
+                  <InstagramReel shortcode={shortcode} />
 
                   {/* Bottom CTA buttons */}
                   <div className="flex gap-2 max-w-[320px] mx-auto">

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { supabase } from '@/lib/supabase/client'
 
 type StatItem = {
   id: string
@@ -13,56 +12,53 @@ type StatItem = {
 }
 
 const DEFAULT_STATS: StatItem[] = [
-  { id: 'years', value: 15, suffix: '+', label: 'Yillik tajriba', icon: '⭐' },
-  { id: 'customers', value: 10000, suffix: '+', label: 'Mamnun mijozlar', icon: '💝' },
-  { id: 'return', value: 90, suffix: '%', label: 'Qaytib kelish darajasi', icon: '🔄' },
-  { id: 'quality', value: 95, suffix: '%', label: 'Sifat reytingi', icon: '✨' },
-  { id: 'products', value: 500, suffix: '+', label: 'Mahsulot turlari', icon: '👗' },
-  { id: 'cities', value: 3, suffix: '', label: 'Manba shaharlari', icon: '🌍' },
+  { id: 'years',     value: 15,    suffix: '+', label: 'Yillik tajriba',         icon: '⭐' },
+  { id: 'customers', value: 10000, suffix: '+', label: 'Mamnun mijozlar',        icon: '💝' },
+  { id: 'return',    value: 90,    suffix: '%', label: 'Qaytib kelish darajasi', icon: '🔄' },
+  { id: 'quality',   value: 95,    suffix: '%', label: 'Sifat reytingi',         icon: '✨' },
+  { id: 'products',  value: 500,   suffix: '+', label: 'Mahsulot turlari',       icon: '👗' },
+  { id: 'cities',    value: 3,     suffix: '',  label: 'Manba shaharlari',       icon: '🌍' },
 ]
 
 function CountUpNumber({ value }: { value: number }) {
-  const ref = useRef<HTMLSpanElement | null>(null)
-  const [displayValue, setDisplayValue] = useState(0)
-  const [hasAnimated, setHasAnimated] = useState(false)
+  const ref        = useRef<HTMLSpanElement | null>(null)
+  const rafRef     = useRef<number | null>(null)
+  const [display, setDisplay]       = useState(0)
+  const [animated, setAnimated]     = useState(false)
 
   useEffect(() => {
-    if (hasAnimated) setDisplayValue(value)
-  }, [hasAnimated, value])
-
-  useEffect(() => {
+    if (animated) { setDisplay(value); return }
     const node = ref.current
-    if (!node || hasAnimated) return
+    if (!node) return
 
     const observer = new IntersectionObserver(
-      entries => {
-        if (!entries[0]?.isIntersecting) return
-
-        setHasAnimated(true)
-        const start = performance.now()
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        setAnimated(true)
+        const start    = performance.now()
         const duration = 1800
-
         function tick(now: number) {
           const progress = Math.min((now - start) / duration, 1)
-          const eased = 1 - Math.pow(1 - progress, 3)
-          setDisplayValue(Math.round(value * eased))
-
+          const eased    = 1 - Math.pow(1 - progress, 3)
+          setDisplay(Math.round(value * eased))
           if (progress < 1) {
-            requestAnimationFrame(tick)
+            rafRef.current = requestAnimationFrame(tick)
           }
         }
-
-        requestAnimationFrame(tick)
+        rafRef.current = requestAnimationFrame(tick)
         observer.disconnect()
       },
-      { threshold: 0.35 }
+      { threshold: 0.35 },
     )
-
     observer.observe(node)
-    return () => observer.disconnect()
-  }, [hasAnimated, value])
 
-  return <span ref={ref}>{displayValue.toLocaleString('uz-UZ')}</span>
+    return () => {
+      observer.disconnect()
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [animated, value])
+
+  return <span ref={ref}>{display.toLocaleString('uz-UZ')}</span>
 }
 
 export default function StatsSection() {
@@ -70,30 +66,23 @@ export default function StatsSection() {
 
   useEffect(() => {
     let mounted = true
-
-    async function loadStats() {
-      try {
-        const { data } = await supabase
-          .from('settings')
-          .select('key,value')
-          .eq('key', 'biz_raqamlarda')
-
-        if (!mounted || !data?.[0]?.value) return
-
-        const parsed = JSON.parse(data[0].value)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setStats(parsed)
-        }
-      } catch {
-        if (mounted) setStats(DEFAULT_STATS)
-      }
-    }
-
-    loadStats()
-
-    return () => {
-      mounted = false
-    }
+    // Use the public /api/stats endpoint — avoids direct browser Supabase calls
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(({ value }) => {
+        if (!mounted || !value) return
+        try {
+          const parsed = JSON.parse(value)
+          // Admin saves { header, items: StatItem[] } — support both formats
+          if (parsed?.items && Array.isArray(parsed.items) && parsed.items.length > 0) {
+            setStats(parsed.items)
+          } else if (Array.isArray(parsed) && parsed.length > 0) {
+            setStats(parsed)
+          }
+        } catch { /* fall through to defaults */ }
+      })
+      .catch(() => {})
+    return () => { mounted = false }
   }, [])
 
   return (

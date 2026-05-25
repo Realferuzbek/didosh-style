@@ -10,7 +10,7 @@ import type { Product } from '@/lib/types'
 function FavoriteSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-      {[1,2,3,4].map(i => (
+      {[1, 2, 3, 4].map(i => (
         <div key={i} className="aspect-[3/4] skeleton rounded-card" />
       ))}
     </div>
@@ -24,13 +24,15 @@ export default function FavoritesPage() {
 
   useEffect(() => {
     if (ids.length === 0) { setIsLoading(false); return }
-    fetch('/api/products')
+
+    // Batch fetch — only load the specific favorited products, not the entire catalog
+    fetch('/api/products/batch', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ ids }),
+    })
       .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setProducts(data.filter((p: Product) => ids.includes(p.id)))
-        }
-      })
+      .then(data => { if (Array.isArray(data)) setProducts(data) })
       .catch(() => {})
       .finally(() => setIsLoading(false))
   }, [ids])
@@ -53,7 +55,6 @@ export default function FavoritesPage() {
         {isLoading ? (
           <FavoriteSkeleton />
         ) : ids.length === 0 ? (
-          /* Empty state */
           <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
             <div className="w-20 h-20 rounded-full bg-brand-blush flex items-center justify-center">
               <Heart size={36} className="text-brand-deeprose" strokeWidth={1.5} />
@@ -71,9 +72,7 @@ export default function FavoritesPage() {
             </Link>
           </div>
         ) : products.length === 0 ? (
-          <div className="py-12 text-center text-brand-muted text-sm">
-            Yuklanmoqda...
-          </div>
+          <div className="py-12 text-center text-brand-muted text-sm">Yuklanmoqda...</div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {products.map((product, index) => (

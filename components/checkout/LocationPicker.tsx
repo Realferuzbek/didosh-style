@@ -111,8 +111,17 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange, error 
 
   async function reverseGeocode(lat: number, lng: number) {
     try {
+      // Nominatim usage policy requires a User-Agent header identifying
+      // the application. Without it, requests may be rate-limited or blocked.
+      // See: https://operations.osmfoundation.org/policies/nominatim/
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=uz,ru`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=uz,ru`,
+        {
+          headers: {
+            'User-Agent': 'DidoshStyle/1.0 (didoshstyle.netlify.app)',
+            'Accept-Language': 'uz,ru',
+          },
+        }
       );
       const data = await res.json();
       const address = data.address || {};

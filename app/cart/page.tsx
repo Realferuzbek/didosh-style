@@ -1,22 +1,27 @@
-"use client";
+"use client"
 
-import { useRouter } from "next/navigation";
-import { useCartStore } from "@/lib/store";
-import { formatPrice } from "@/lib/utils";
-import CartItem from "@/components/cart/CartItem";
-import EmptyCart from "@/components/cart/EmptyCart";
-import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation"
+import { useCartStore } from "@/lib/store"
+import { formatPrice } from "@/lib/utils"
+import CartItem from "@/components/cart/CartItem"
+import EmptyCart from "@/components/cart/EmptyCart"
+import { AnimatePresence, motion } from "framer-motion"
+import { ChevronLeft } from "lucide-react"
 
 export default function CartPage() {
-  const router = useRouter();
-  const items = useCartStore((s) => s.items);
-  const totalPrice = useCartStore((s) => s.totalPrice());
-  const totalItems = useCartStore((s) => s.totalItems());
-  const clearCart = useCartStore((s) => s.clearCart);
+  const router     = useRouter()
+  const items      = useCartStore(s => s.items)
+  const totalPrice = useCartStore(s => s.totalPrice())
+  const totalItems = useCartStore(s => s.totalItems())
+  const clearCart  = useCartStore(s => s.clearCart)
 
-  if (items.length === 0) {
-    return <EmptyCart />;
+  if (items.length === 0) return <EmptyCart />
+
+  function handleClearCart() {
+    const confirmed = window.confirm(
+      "Savatchadagi barcha mahsulotlar o'chiriladi. Davom etasizmi?"
+    )
+    if (confirmed) clearCart()
   }
 
   return (
@@ -35,7 +40,7 @@ export default function CartPage() {
         {items.length > 0 ? (
           <button
             className="text-[12px] text-brand-deeprose font-medium hover:underline px-2 py-1 rounded active:scale-95"
-            onClick={clearCart}
+            onClick={handleClearCart}
             aria-label="Hammasini o'chirish"
           >
             Hammasini o&#39;chirish
@@ -45,10 +50,10 @@ export default function CartPage() {
         )}
       </header>
 
-      {/* Cart items list */}
+      {/* Cart items */}
       <main className="flex-1 overflow-y-auto pb-32">
         <AnimatePresence>
-          {items.map((item) => (
+          {items.map(item => (
             <motion.div
               key={`${item.product_id}-${item.size}`}
               layout
@@ -71,13 +76,10 @@ export default function CartPage() {
           <span className="text-[20px] font-bold text-brand-deeprose">{formatPrice(totalPrice)}</span>
         </div>
         <div className="text-xs text-brand-muted mb-2">Yetkazib berish narxi keyinroq</div>
-        <button
-          className="btn-primary"
-          onClick={() => router.push("/checkout")}
-        >
+        <button className="btn-primary" onClick={() => router.push("/checkout")}>
           Buyurtma rasmiylashtirish →
         </button>
       </div>
     </div>
-  );
+  )
 }

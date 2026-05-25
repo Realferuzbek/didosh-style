@@ -6,10 +6,10 @@ import { Lock, Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function LoginForm({ onSuccess }: { onSuccess: () => void }) {
-  const [password, setPassword] = useState('')
+  const [password, setPassword]       = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(false)
+  const [isLoading, setIsLoading]     = useState(false)
+  const [error, setError]             = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -17,13 +17,20 @@ export default function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     setError(false)
     try {
       const res = await fetch('/api/admin-auth', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body:    JSON.stringify({ password }),
       })
       if (res.ok) {
+        // Keep sessionStorage as client-side UI gate
         sessionStorage.setItem('admin_auth', 'true')
-        onSuccess()
+        // Read returnTo from URL without useSearchParams (avoids Suspense requirement)
+        const returnTo = new URLSearchParams(window.location.search).get('returnTo')
+        if (returnTo && returnTo.startsWith('/admin')) {
+          window.location.href = returnTo
+        } else {
+          onSuccess()
+        }
       } else {
         setError(true)
       }
@@ -62,7 +69,7 @@ export default function LoginForm({ onSuccess }: { onSuccess: () => void }) {
                   type={showPassword ? 'text' : 'password'}
                   className={cn(
                     'bg-[#1A1218] border border-[#3D2A36] rounded-xl px-4 py-3.5 text-white placeholder:text-[#5A4050] focus:border-brand-deeprose focus:outline-none w-full text-[15px]',
-                    error && 'border-red-500'
+                    error && 'border-red-500',
                   )}
                   placeholder="Parol"
                   value={password}
@@ -99,7 +106,7 @@ export default function LoginForm({ onSuccess }: { onSuccess: () => void }) {
             type="submit"
             className={cn(
               'w-full bg-brand-deeprose hover:bg-[#C05A7A] text-white font-medium rounded-xl py-3.5 transition-colors flex items-center justify-center',
-              isLoading && 'opacity-80 cursor-not-allowed'
+              isLoading && 'opacity-80 cursor-not-allowed',
             )}
             disabled={isLoading}
           >
