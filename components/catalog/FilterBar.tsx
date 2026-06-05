@@ -34,11 +34,13 @@ export default function FilterBar({
     categories && categories.length > 0
       ? [
           { label: 'Barchasi', emoji: '🛍️', slug: 'barchasi' },
-          ...categories.map(c => ({
-            label: c.name,
-            emoji: CATEGORIES.find(h => h.slug === c.slug)?.emoji ?? '✨',
-            slug:  c.slug,
-          })),
+          ...categories
+            .filter(c => c.slug !== 'barchasi')
+            .map(c => ({
+              label: c.name,
+              emoji: CATEGORIES.find(h => h.slug === c.slug)?.emoji ?? '✨',
+              slug:  c.slug,
+            })),
         ]
       : CATEGORIES
 

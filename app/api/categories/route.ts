@@ -10,6 +10,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('categories')
       .select('id, name, slug, sort_order')
+      .neq('slug', 'barchasi')
       .order('sort_order', { ascending: true })
     if (error) throw error
     return NextResponse.json(data ?? [])
