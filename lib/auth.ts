@@ -41,3 +41,21 @@ export function extractBearerToken(authHeader: string | null): string | null {
   if (!authHeader?.startsWith('Bearer ')) return null
   return authHeader.slice(7)
 }
+
+// ── Admin Device Token (7 days) ───────────────────────────────────────────────
+export async function signAdminDeviceToken(): Promise<string> {
+  return new SignJWT({ type: 'admin_device' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('7d')
+    .sign(getSecret())
+}
+
+export async function verifyAdminDeviceToken(token: string): Promise<boolean> {
+  try {
+    const { payload } = await jwtVerify(token, getSecret())
+    return payload.type === 'admin_device'
+  } catch {
+    return false
+  }
+}

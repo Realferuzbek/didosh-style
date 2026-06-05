@@ -19,7 +19,7 @@ const store = new Map<string, Entry>()
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now()
-    for (const [key, entry] of store.entries()) {
+    for (const [key, entry] of Array.from(store.entries())) {
       if (entry.resetAt < now) store.delete(key)
     }
   }, 60_000)
