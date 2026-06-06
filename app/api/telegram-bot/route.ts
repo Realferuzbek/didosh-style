@@ -5,6 +5,9 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const BOT_TOKEN    = process.env.TELEGRAM_BOT_TOKEN ?? ''
+if (!BOT_TOKEN) {
+  console.error('[telegram-bot] TELEGRAM_BOT_TOKEN is not set')
+}
 const SITE_URL     = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://didoshstyle.netlify.app'
 // Set this in Netlify env vars + when registering the webhook via setWebhook API
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET ?? ''
@@ -40,15 +43,21 @@ function normalizePhone(raw: string): string {
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  // ── Verify Telegram webhook signature ────────────────────────────────────
-  // Set TELEGRAM_WEBHOOK_SECRET in Netlify + pass it to setWebhook API:
-  // https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL>&secret_token=<SECRET>
-  if (WEBHOOK_SECRET) {
+  // In production: always verify the webhook secret.
+  // In development: warn but allow (for local ngrok testing).
+  if (process.env.NODE_ENV === 'production') {
+    if (!WEBHOOK_SECRET) {
+      console.error('[telegram-bot] CRITICAL: TELEGRAM_WEBHOOK_SECRET is not set')
+      return NextResponse.json({ ok: false }, { status: 500 })
+    }
     const incomingSecret = req.headers.get('x-telegram-bot-api-secret-token')
-    if (!incomingSecret || incomingSecret !== WEBHOOK_SECRET) {
-      // Return 200 so Telegram doesn't retry — but do not process the payload
-      console.warn('[telegram-bot] Rejected request with invalid webhook secret')
+    if (incomingSecret !== WEBHOOK_SECRET) {
+      console.warn('[telegram-bot] Rejected: invalid webhook secret header')
       return NextResponse.json({ ok: false }, { status: 403 })
+    }
+  } else {
+    if (!WEBHOOK_SECRET) {
+      console.warn('[telegram-bot] DEV: TELEGRAM_WEBHOOK_SECRET not set, skipping verification')
     }
   }
 
@@ -96,6 +105,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = getAdminClient()
 
+    console.log('[telegram-bot] Looking up OTP for phone:', phone)
     const { data: otpRecord } = await supabase
       .from('otp_codes')
       .select('code, expires_at, id')
@@ -107,12 +117,15 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (!otpRecord) {
+      console.log('[telegram-bot] No valid OTP found for phone:', phone)
       await sendMessage(
         chatId,
         `⏰ <b>Kod topilmadi yoki muddati tugagan.</b>\n\nYangi kod olish uchun saytga qayting va telefon raqamingizni qayta kiriting.`,
         [[{ text: '🔄 Yangi kod olish', url: `${SITE_URL}/profile` }]],
       )
       return NextResponse.json({ ok: true })
+    } else {
+      console.log('[telegram-bot] OTP found, sending to chatId:', chatId)
     }
 
     const code        = otpRecord.code

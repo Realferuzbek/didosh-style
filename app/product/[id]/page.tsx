@@ -194,12 +194,33 @@ export default function ProductDetailPage() {
               />
             )}
 
+            {/* Low-stock warning (<=5) */}
+            {product.stock > 0 && product.stock <= 5 && (
+              <div className="flex items-center gap-1.5 px-1">
+                <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                <span className="text-orange-500 font-body text-[13px] font-medium">
+                  Atigi {product.stock} ta qoldi!
+                </span>
+              </div>
+            )}
+
+            {/* Out-of-stock banner below title */}
+            {product.stock === 0 && (
+              <div className="inline-flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-full px-4 py-1.5">
+                <span className="w-2 h-2 rounded-full bg-gray-400" />
+                <span className="font-body text-sm text-gray-500 font-medium">
+                  Bu mahsulot tugagan
+                </span>
+              </div>
+            )}
+
             <SizeSelector
               id="size-selector"
               sizes={product.sizes}
               selected={selectedSize}
-              onSelect={(size: string) => { setSelectedSize(size); setSizeError(false) }}
+              onSelect={(size: string) => { if (product.stock === 0) return; setSelectedSize(size); setSizeError(false) }}
               hasError={sizeError}
+              disabled={product.stock === 0}
             />
 
             <DescriptionAccordion description={product.description} />

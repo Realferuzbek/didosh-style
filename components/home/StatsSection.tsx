@@ -21,22 +21,24 @@ const DEFAULT_STATS: StatItem[] = [
 ]
 
 function CountUpNumber({ value }: { value: number }) {
-  const ref        = useRef<HTMLSpanElement | null>(null)
-  const rafRef     = useRef<number | null>(null)
-  const [display, setDisplay]       = useState(0)
-  const [animated, setAnimated]     = useState(false)
+  const spanRef      = useRef<HTMLSpanElement | null>(null)
+  const rafRef       = useRef<number | null>(null)
+  const hasAnimated  = useRef(false)
+  const [display, setDisplay] = useState(0)
 
   useEffect(() => {
-    if (animated) { setDisplay(value); return }
-    const node = ref.current
-    if (!node) return
+    const node = spanRef.current
+    if (!node || hasAnimated.current) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting) return
-        setAnimated(true)
+        if (!entry.isIntersecting || hasAnimated.current) return
+        hasAnimated.current = true
+        observer.disconnect()
+
         const start    = performance.now()
         const duration = 1800
+
         function tick(now: number) {
           const progress = Math.min((now - start) / duration, 1)
           const eased    = 1 - Math.pow(1 - progress, 3)
@@ -46,9 +48,8 @@ function CountUpNumber({ value }: { value: number }) {
           }
         }
         rafRef.current = requestAnimationFrame(tick)
-        observer.disconnect()
       },
-      { threshold: 0.35 },
+      { threshold: 0.3 },
     )
     observer.observe(node)
 
@@ -56,9 +57,11 @@ function CountUpNumber({ value }: { value: number }) {
       observer.disconnect()
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [animated, value])
+  }, [value])
 
-  return <span ref={ref}>{display.toLocaleString('uz-UZ')}</span>
+  return (
+    <span ref={spanRef}>{display.toLocaleString('uz-UZ')}</span>
+  )
 }
 
 export default function StatsSection() {

@@ -272,8 +272,8 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* ── Order list ────────────────────────────────────────────────── */}
-      <div className="px-4 pb-8 space-y-3">
+  {/* ── Order list ────────────────────────────────────────────────── */}
+  <div className="px-4 pb-8 space-y-3 pb-20 sm:pb-6">
         {isLoading ? (
           // Skeletons
           Array.from({ length: 4 }).map((_, i) => (

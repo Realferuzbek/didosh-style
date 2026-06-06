@@ -153,16 +153,15 @@ export default function CatalogPage() {
           </button>
         </div>
         <SearchBar value={search} onChange={setSearch} />
+        <FilterBar
+          activeCategory={activeCategory}
+          onCategoryChange={setActiveCategory}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          resultCount={filteredProducts.length}
+          categories={categories}
+        />
       </div>
-
-      <FilterBar
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        resultCount={filteredProducts.length}
-        categories={categories}
-      />
 
       <main className="page-container page-with-nav pb-6">
         {isLoading ? (

@@ -72,7 +72,7 @@ export default function AdminPage() {
   return (
     <>
       <AdminNav onLogout={handleLogout} />
-      <main className="p-4 md:p-6 max-w-screen-xl mx-auto">
+  <main className="p-4 md:p-6 max-w-screen-xl mx-auto pb-20 sm:pb-6">
         <div className="mt-4">
           <h1 className="font-display text-3xl text-white mb-2">Bosh sahifa</h1>
           <p className="text-[#9B7B85] text-sm">Mahsulotlar va buyurtmalarni boshqaring.</p>

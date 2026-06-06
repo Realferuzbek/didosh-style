@@ -10,6 +10,7 @@ interface SizeSelectorProps {
   selected: string | null;
   onSelect: (size: string) => void;
   hasError?: boolean;
+  disabled?: boolean;
 }
 
 const SIZE_GUIDE = [
@@ -21,7 +22,7 @@ const SIZE_GUIDE = [
   ["XXL", "100–106", "80–86"],
 ];
 
-export default function SizeSelector({ id, sizes, selected, onSelect, hasError }: SizeSelectorProps) {
+export default function SizeSelector({ id, sizes, selected, onSelect, hasError, disabled = false }: SizeSelectorProps) {
   const [showGuide, setShowGuide] = useState(false);
   return (
     <motion.div
@@ -49,10 +50,11 @@ export default function SizeSelector({ id, sizes, selected, onSelect, hasError }
               "min-w-[48px] h-11 rounded-xl border-2 flex items-center justify-center text-[14px] font-medium transition-all duration-150",
               selected === size
                 ? "bg-brand-deeprose text-white border-brand-deeprose shadow-md"
-                : "bg-white text-brand-dark border-brand-border hover:border-brand-rose"
+                : "bg-white text-brand-dark border-brand-border hover:border-brand-rose",
+              disabled && 'opacity-40 cursor-not-allowed'
             )}
             whileTap={{ scale: 0.92 }}
-            onClick={() => onSelect(size)}
+            onClick={() => { if (!disabled) onSelect(size) }}
           >
             {size}
           </motion.button>

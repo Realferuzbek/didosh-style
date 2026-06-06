@@ -16,7 +16,8 @@ interface ProductCardProps {
     discount_price: number | null
     images: string[]
     sizes: string[]
-    is_featured: boolean
+  is_featured: boolean
+  stock?: number
   }
   index: number
 }
@@ -49,9 +50,19 @@ export default function ProductCard({ product, index }: ProductCardProps) {
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover object-top transition-transform duration-[600ms] group-hover:scale-110"
+            className={cn(
+              'object-cover object-top transition-transform duration-[600ms] group-hover:scale-110',
+              typeof product.stock === 'number' && product.stock === 0 && 'opacity-60'
+            )}
             priority={index < 4}
           />
+          {typeof product.stock === 'number' && product.stock === 0 && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-inherit">
+              <span className="bg-white/90 text-brand-dark font-body font-semibold text-xs px-3 py-1.5 rounded-full shadow-sm tracking-wide uppercase">
+                Tugadi
+              </span>
+            </div>
+          )}
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[40%] bg-gradient-to-t from-[rgba(44,24,16,0.12)] to-transparent" />
 
           <div className="absolute left-2 top-2 z-10">

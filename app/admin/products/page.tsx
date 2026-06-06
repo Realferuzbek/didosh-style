@@ -149,8 +149,8 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Products list */}
-      <div className="px-4 py-3 space-y-2 pb-8">
+  {/* Products list */}
+  <div className="px-4 py-3 space-y-2 pb-8 pb-20 sm:pb-6">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
             <div

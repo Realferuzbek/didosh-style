@@ -64,7 +64,7 @@ export default function AdminNav({ onLogout }: { onLogout: () => void }) {
       </nav>
 
       {/* Mobile Bottom Nav */}
-      <nav className="sm:hidden fixed bottom-0 left-0 w-full h-14 bg-[#2C1F28] border-t border-[#3D2A36] flex justify-around items-center z-40">
+  <nav className="sm:hidden fixed bottom-0 left-0 w-full h-14 bg-[#2C1F28] border-t border-[#3D2A36] flex justify-around items-center z-40 pb-[env(safe-area-inset-bottom)]">
         <Link href="/admin" className="flex flex-col items-center justify-center gap-0.5 flex-1">
           <Package size={20} className={pathname === "/admin" ? "text-brand-deeprose" : "text-[#9B7B85]"} />
           <span className={pathname === "/admin" ? "text-brand-deeprose text-xs" : "text-[#9B7B85] text-xs"}>Mahsulotlar</span>

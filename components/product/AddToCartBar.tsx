@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ShoppingBag, Check, Minus, Plus, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatPrice } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 
 interface AddToCartBarProps {
   price: number
@@ -14,6 +15,7 @@ interface AddToCartBarProps {
   cartQuantity?: number       // how many of THIS item+size are in cart
   onIncrement?: () => void    // +1 in cart
   onDecrement?: () => void    // -1 in cart
+  outOfStock?: boolean
 }
 
 export default function AddToCartBar({
@@ -25,10 +27,12 @@ export default function AddToCartBar({
   cartQuantity = 0,
   onIncrement,
   onDecrement,
+  outOfStock = false,
 }: AddToCartBarProps) {
   const router = useRouter()
   const activePrice = discountPrice ?? price
   const inCart = cartQuantity > 0
+  const isDisabled = !!outOfStock || !!disabled
 
   return (
     <div
@@ -112,12 +116,17 @@ export default function AddToCartBar({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
               transition={{ duration: 0.2 }}
-              onClick={onAddToCart}
-              disabled={disabled}
-              className="flex-1 flex items-center justify-center gap-2 bg-brand-deeprose hover:bg-[#C05A7A] text-white font-body font-semibold rounded-btn px-4 py-3.5 text-[15px] transition-colors disabled:opacity-50"
+              onClick={isDisabled ? undefined : onAddToCart}
+              disabled={isDisabled}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 font-body font-semibold rounded-btn px-4 py-3.5 text-[15px] transition-all',
+                outOfStock
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed hover:bg-gray-200'
+                  : 'bg-brand-deeprose hover:bg-[#C05A7A] text-white'
+              )}
             >
               <ShoppingBag size={18} />
-              Savatchaga qo&apos;shish
+              {outOfStock ? 'Tugadi' : 'Savatchaga qo&apos;shish'}
             </motion.button>
           )}
         </AnimatePresence>

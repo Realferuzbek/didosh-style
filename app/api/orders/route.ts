@@ -54,6 +54,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Input length limits — prevent abuse and DB bloat
+    if (customer_name.trim().length > 100) {
+      return NextResponse.json({ error: 'Ism juda uzun' }, { status: 400 })
+    }
+    if (delivery_city.trim().length > 100) {
+      return NextResponse.json({ error: 'Shahar nomi juda uzun' }, { status: 400 })
+    }
+    if (delivery_address.trim().length > 500) {
+      return NextResponse.json({ error: 'Manzil juda uzun' }, { status: 400 })
+    }
+    if (notes && notes.trim().length > 1000) {
+      return NextResponse.json({ error: 'Izoh juda uzun (max 1000 belgi)' }, { status: 400 })
+    }
+    if (items.length > 50) {
+      return NextResponse.json({ error: 'Savatchada juda ko\'p mahsulot' }, { status: 400 })
+    }
+
     // ── Per-phone rate limit: 3 orders per phone per 10 minutes ───────────
     const phoneDigits = String(customer_phone).replace(/\D/g, '')
     const phoneLimit = checkRateLimit(`order:phone:${phoneDigits}`, 3, 10 * 60 * 1000)
@@ -85,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     const { data: dbProducts, error: priceError } = await supabase
       .from('products')
-      .select('id, name, price, discount_price, is_active')
+      .select('id, name, price, discount_price, is_active, stock')
       .in('id', productIds)
 
     if (priceError) throw priceError
@@ -115,6 +132,12 @@ export async function POST(req: NextRequest) {
       if (!db.is_active) {
         return NextResponse.json(
           { error: `"${db.name}" mahsuloti hozirda mavjud emas` },
+          { status: 400 },
+        )
+      }
+      if (typeof db.stock === 'number' && db.stock <= 0) {
+        return NextResponse.json(
+          { error: `"${db.name}" tugagan` },
           { status: 400 },
         )
       }
