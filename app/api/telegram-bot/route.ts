@@ -25,13 +25,7 @@ async function sendMessage(chatId: number, text: string, inlineKeyboard?: object
   return res.json()
 }
 
-async function answerCallbackQuery(callbackQueryId: string, text: string) {
-  await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: false }),
-  })
-}
+// answerCallbackQuery removed — callback_query handling deprecated
 
 // ── Phone normalization ───────────────────────────────────────────────────────
 function normalizePhone(raw: string): string {
@@ -64,19 +58,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    // Handle inline button presses
-    if (body.callback_query) {
-      const cq = body.callback_query
-      await answerCallbackQuery(cq.id, '')
-      if (cq.data?.startsWith('copy_')) {
-        const code = cq.data.replace('copy_', '')
-        await sendMessage(
-          cq.message.chat.id,
-          `✅ Kod: <code>${code}</code>\n\nQuyidagi kodni saytda kiriting.`,
-        )
-      }
-      return NextResponse.json({ ok: true })
-    }
+  // NOTE: callback_query handling removed — buttons that copied the code are deprecated.
 
     const message = body?.message
     if (!message) return NextResponse.json({ ok: true })
@@ -131,20 +113,13 @@ export async function POST(req: NextRequest) {
     const code        = otpRecord.code
     const phoneDigits = phone.replace(/\D/g, '')
     const verifyUrl   = `${SITE_URL}/verify?p=${phoneDigits}&c=${code}&r=${returnPath}`
-    const minsLeft    = Math.max(1, Math.round((new Date(otpRecord.expires_at).getTime() - Date.now()) / 60000))
+  // minsLeft removed (no longer displayed in Telegram message)
 
     await sendMessage(
       chatId,
-      `🌸 <b>Didosh Style</b> — tasdiqlash kodi\n\n` +
-      `🔐 Sizning kodingiz:\n\n` +
-      `<b><code>${code}</code></b>\n\n` +
-      `Kodni saytda kiriting <i>YOKI</i> quyidagi tugmani bosing — avtomatik tasdiqlanadi!\n\n` +
-      `⏱ Kod ${minsLeft} daqiqada amal qiladi.\n` +
-      `🔒 Kodni hech kimga bermang.`,
+      `🌸 Didosh Style — tasdiqlash.\n\nTasdiqlash uchun quyidagi tugmani bosing 👇`,
       [
         [{ text: `✅ Saytda avtomatik tasdiqlash`, url: verifyUrl }],
-        [{ text: `📋 Kodni ko'rsatish: ${code}`, callback_data: `copy_${code}` }],
-        [{ text: `🛍 Saytga qaytish`, url: `${SITE_URL}/${returnPath}` }],
       ],
     )
 

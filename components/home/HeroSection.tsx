@@ -140,21 +140,23 @@ export default function HeroSection() {
         </motion.div>
       </div>
 
-      <motion.div
-        className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-1 text-brand-muted"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-        style={{ willChange: 'transform' }}
-      >
-        <ChevronDown size={18} />
-        <motion.span
-          className="font-body text-[11px] font-medium"
-          animate={{ opacity: [0.45, 1, 0.45] }}
+      <div className="absolute bottom-8 inset-x-0 z-20 flex justify-center">
+        <motion.div
+          className="flex flex-col items-center gap-1 text-brand-muted"
+          animate={{ y: [0, 8, 0] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ willChange: 'transform' }}
         >
-          Pastga suring
-        </motion.span>
-      </motion.div>
+          <ChevronDown size={18} />
+          <motion.span
+            className="font-body text-[11px] font-medium"
+            animate={{ opacity: [0.45, 1, 0.45] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            Pastga suring
+          </motion.span>
+        </motion.div>
+      </div>
     </section>
   )
 }

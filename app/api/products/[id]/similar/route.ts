@@ -21,7 +21,7 @@ export async function GET(
 
     const base = supabase
       .from('products')
-      .select('id, name, price, discount_price, images, sizes, is_featured, categories(name, slug)')
+      .select('id, name, price, discount_price, images, sizes, stock, is_featured, categories(name, slug)')
       .eq('is_active', true)
       .neq('id', params.id)
       .order('created_at', { ascending: false })
@@ -35,7 +35,7 @@ export async function GET(
     if (!data || data.length < 2) {
       const { data: fallback } = await supabase
         .from('products')
-        .select('id, name, price, discount_price, images, sizes, is_featured, categories(name, slug)')
+        .select('id, name, price, discount_price, images, sizes, stock, is_featured, categories(name, slug)')
         .eq('is_active', true)
         .neq('id', params.id)
         .order('created_at', { ascending: false })

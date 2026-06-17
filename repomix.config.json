@@ -1,0 +1,16 @@
+{
+  "output": {
+    "filePath": "repomix-output.txt",
+    "style": "markdown" 
+  },
+  "ignore": {
+    "customPatterns": [
+      "node_modules",
+      ".next",
+      ".git",
+      "*.zip",
+      "*.lock",
+      ".env*"
+    ]
+  }
+}

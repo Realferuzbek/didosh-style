@@ -52,7 +52,7 @@ export default function FilterBar({
           <button
             key={cat.slug}
             className={cn(
-              "flex items-center gap-1 px-4 py-2 rounded-full text-sm font-body font-medium active:scale-95 transition-all duration-150",
+              "flex shrink-0 items-center gap-1 px-4 py-2 rounded-full whitespace-nowrap text-sm font-body font-medium active:scale-95 transition-all duration-150",
               activeCategory === cat.slug
                 ? "bg-gradient-to-tr from-brand-deeprose to-brand-rose text-white shadow"
                 : "bg-white/80 backdrop-blur-sm border border-brand-border/40 text-brand-dark",

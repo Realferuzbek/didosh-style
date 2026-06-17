@@ -126,7 +126,7 @@ export default function AddToCartBar({
               )}
             >
               <ShoppingBag size={18} />
-              {outOfStock ? 'Tugadi' : 'Savatchaga qo&apos;shish'}
+              {outOfStock ? 'Tugadi' : "Savatchaga qo'shish"}
             </motion.button>
           )}
         </AnimatePresence>

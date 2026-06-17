@@ -8,6 +8,7 @@ Run each `.sql` file in **Supabase Dashboard → SQL Editor** (or via `supabase 
 |------|---------|-------------|
 | `decrement_stock.sql` | Atomic batch stock decrement RPC — replaces N+1 loop | Before first order is placed |
 | `otp_cleanup.sql` | OTP table index + cleanup function | Immediately after deploy |
+| `generate_order_number.sql` | Unique order-number generator RPC — required for order creation | Before any order is placed |
 
 ## pg_cron (optional)
 

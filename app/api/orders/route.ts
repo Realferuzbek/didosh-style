@@ -212,7 +212,14 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ order_number: order.order_number }, { status: 201 })
   } catch (error) {
-    console.error('[POST /api/orders]', error)
-    return NextResponse.json({ error: 'Buyurtma yaratishda xatolik' }, { status: 500 })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('[POST /api/orders]', msg)
+    return NextResponse.json(
+      {
+        error: 'Buyurtma yaratishda xatolik',
+        ...(process.env.NODE_ENV === 'development' && { debug: msg }),
+      },
+      { status: 500 },
+    )
   }
 }

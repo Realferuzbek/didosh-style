@@ -1,6 +1,6 @@
 'use client'
 
-import { ChangeEvent, ClipboardEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
+import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 
@@ -18,17 +18,10 @@ type Step = 'phone' | 'otp' | 'success'
 type SendOTPResponse = {
   success?: boolean
   dev_code?: string
+  telegram?: boolean
+  botLink?: string
   error?: string
 }
-
-type VerifyOTPResponse = {
-  success?: boolean
-  token?: string
-  isNewUser?: boolean
-  error?: string
-}
-
-const EMPTY_OTP = ['', '', '', '', '', '']
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, '')
@@ -41,10 +34,6 @@ function formatPhone(value: string): string {
   return result.trim()
 }
 
-function maskPhone(value: string): string {
-  const digits = value.replace(/\D/g, '')
-  return `+998 ** *** ** ${digits.slice(-2)}`
-}
 
 function DevCodeHint({ devCode }: { devCode: string | null }) {
   if (!devCode) return null
@@ -65,56 +54,34 @@ export default function OTPModal({
 }: OTPModalProps) {
   const [step, setStep] = useState<Step>('phone')
   const [phoneInput, setPhoneInput] = useState('')
-  const [otpDigits, setOtpDigits] = useState<string[]>(EMPTY_OTP)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isNewUser, setIsNewUser] = useState(false)
   const [devCode, setDevCode] = useState<string | null>(null)
 
-  const otpRefs = useRef<Array<HTMLInputElement | null>>([])
-  const verifyRef = useRef<(codeOverride?: string) => Promise<void>>(async () => undefined)
-  const submittedCodeRef = useRef('')
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const autoSubmitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const phoneDigits = phoneInput.replace(/\D/g, '')
-  const otpCode = otpDigits.join('')
   const canSend = phoneDigits.length >= 12 && !isLoading
-  const canVerify = otpCode.length === 6 && !isLoading
 
   useEffect(() => {
     if (!isOpen) return
     setStep('phone')
     setPhoneInput(initialPhone ? formatPhone(initialPhone).slice(0, 17) : '')
-    setOtpDigits([...EMPTY_OTP])
     setIsLoading(false)
     setError(null)
     setIsNewUser(false)
     setDevCode(null)
-    submittedCodeRef.current = ''
   }, [initialPhone, isOpen])
 
   useEffect(() => {
+    const timer = successTimerRef.current
+    // reference onSuccess to avoid unused-parameter lint (no-op)
+    void onSuccess
     return () => {
-      if (successTimerRef.current) clearTimeout(successTimerRef.current)
-      if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current)
+      if (timer) clearTimeout(timer)
     }
-  }, [])
-
-  useEffect(() => {
-    if (step !== 'otp') return
-    const timeout = setTimeout(() => otpRefs.current[0]?.focus(), 80)
-    return () => clearTimeout(timeout)
-  }, [step])
-
-  useEffect(() => {
-    if (step !== 'otp') return
-    if (isLoading || otpDigits.some((digit) => digit === '') || submittedCodeRef.current === otpCode) return
-    if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current)
-    autoSubmitTimerRef.current = setTimeout(() => {
-      void verifyRef.current(otpCode)
-    }, 100)
-  }, [isLoading, otpCode, otpDigits, step])
+  }, [onSuccess])
 
   function handleClose() {
     if (step !== 'success') onClose()
@@ -129,7 +96,6 @@ export default function OTPModal({
     if (!canSend) return
     setIsLoading(true)
     setError(null)
-    submittedCodeRef.current = ''
 
     try {
       const res = await fetch('/api/auth/send-otp', {
@@ -150,7 +116,6 @@ export default function OTPModal({
       }
 
       if (result.dev_code) setDevCode(result.dev_code)
-      setOtpDigits([...EMPTY_OTP])
       setStep('otp')
     } catch {
       setError('SMS yuborishda xatolik')
@@ -167,11 +132,16 @@ export default function OTPModal({
       const res = await fetch('/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneInput, via: 'telegram' }),
+        body: JSON.stringify({
+          phone: phoneInput,
+          via: 'telegram',
+          returnPath: window.location.pathname.replace(/^\//, '') || 'profile',
+        }),
       })
-      const result = await res.json()
-      if (res.status === 429) { setError(result.error); return }
+  const result = (await res.json()) as SendOTPResponse
+  if (res.status === 429) { setError(result.error ?? 'Iltimos, 1 daqiqa kuting'); return }
       if (result.telegram && result.botLink) {
+        try { localStorage.setItem('ds_return_url', window.location.href) } catch {}
         window.open(result.botLink, '_blank')
         setStep('otp')
         setDevCode(null)
@@ -183,101 +153,8 @@ export default function OTPModal({
     }
   }
 
-  async function handleVerify(codeOverride?: string) {
-    const code = codeOverride ?? otpDigits.join('')
-    if (isLoading || code.length < 6 || submittedCodeRef.current === code) return
-    submittedCodeRef.current = code
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneInput, code }),
-      })
-      const result = (await res.json()) as VerifyOTPResponse
-
-      if (res.status === 401) {
-        setError("Kod noto'g'ri. Qayta urinib ko'ring")
-        return
-      }
-
-      if (!res.ok || !result.token) {
-        setError(result.error ?? 'Tasdiqlashda xatolik')
-        return
-      }
-
-      setIsNewUser(Boolean(result.isNewUser))
-      setStep('success')
-      successTimerRef.current = setTimeout(() => {
-        onSuccess(result.token as string, phoneInput)
-      }, 2200)
-    } catch {
-      setError('Internet aloqasini tekshiring')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  verifyRef.current = handleVerify
-
-  function setDigit(index: number, value: string) {
-    const digits = value.replace(/\D/g, '')
-    submittedCodeRef.current = ''
-    if (!digits) {
-      setOtpDigits((current) => {
-        const next = [...current]
-        next[index] = ''
-        return next
-      })
-      setError(null)
-      return
-    }
-
-    setOtpDigits((current) => {
-      const next = [...current]
-      digits.slice(0, 6 - index).split('').forEach((digit, offset) => {
-        next[index + offset] = digit
-      })
-      return next
-    })
-    setError(null)
-
-    const nextIndex = Math.min(index + digits.length, 5)
-    otpRefs.current[nextIndex]?.focus()
-  }
-
-  function handleOtpKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Backspace' || otpDigits[index] || index === 0) return
-    event.preventDefault()
-    setOtpDigits((current) => {
-      const next = [...current]
-      next[index - 1] = ''
-      return next
-    })
-    otpRefs.current[index - 1]?.focus()
-  }
-
-  function handleOtpPaste(event: ClipboardEvent<HTMLInputElement>) {
-    event.preventDefault()
-    const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    if (!pasted) return
-
-    submittedCodeRef.current = ''
-    const next = [...EMPTY_OTP]
-    pasted.split('').forEach((digit, index) => {
-      next[index] = digit
-    })
-    setOtpDigits(next)
-    setError(null)
-    otpRefs.current[Math.min(pasted.length, 6) - 1]?.focus()
-  }
-
   function handleBackToPhone() {
-    submittedCodeRef.current = ''
     setStep('phone')
-    setOtpDigits([...EMPTY_OTP])
     setError(null)
   }
 
@@ -374,36 +251,12 @@ export default function OTPModal({
             {step === 'otp' && (
               <div>
                 <div className="text-center mb-6">
-                  <div className="text-5xl mb-3">🔐</div>
-                  <h2 className="font-display text-2xl text-brand-dark">Kodni kiriting</h2>
-                  <p className="font-body text-sm text-brand-muted mt-1">
-                    {maskPhone(phoneInput)} raqamiga kod yuborildi
-                  </p>
-                  <p className="font-body text-[12px] text-[#229ED9] mt-1">
-                    Telegram botidan kodni oling 💬
+                  <div className="text-5xl mb-3">💬</div>
+                  <h2 className="font-display text-2xl text-brand-dark">Telegramni tekshiring</h2>
+                  <p className="font-body text-sm text-brand-muted mt-2 max-w-[260px] mx-auto">
+                    Tasdiqlash uchun Telegramdagi tugmani bosing
                   </p>
                 </div>
-
-                <div className="flex justify-center gap-2 mt-4">
-                  {otpDigits.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(element) => {
-                        otpRefs.current[index] = element
-                      }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      className="w-11 h-14 text-center text-xl font-bold border-2 border-brand-border rounded-2xl focus:border-brand-deeprose focus:outline-none text-brand-dark transition-colors bg-brand-blush"
-                      value={digit}
-                      onChange={(event) => setDigit(index, event.target.value)}
-                      onKeyDown={(event) => handleOtpKeyDown(index, event)}
-                      onPaste={handleOtpPaste}
-                      disabled={isLoading}
-                    />
-                  ))}
-                </div>
-
                 {error && (
                   <motion.p
                     className="font-body text-xs text-red-400 mt-2 text-center"
@@ -413,30 +266,12 @@ export default function OTPModal({
                     {error}
                   </motion.p>
                 )}
-                <DevCodeHint devCode={devCode} />
-
                 <button
                   type="button"
-                  className="mt-5 w-full btn-primary"
-                  disabled={!canVerify}
-                  onClick={() => void handleVerify()}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      Tekshirilmoqda...
-                    </>
-                  ) : (
-                    'Tasdiqlash ✓'
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  className="text-sm text-brand-muted underline mt-3 block text-center mx-auto"
+                  className="text-sm text-brand-muted underline mt-4 block text-center mx-auto"
                   onClick={handleBackToPhone}
                 >
-                  {"← Telefon raqamni o'zgartirish"}
+                  ← Telefon raqamni o&apos;zgartirish
                 </button>
               </div>
             )}

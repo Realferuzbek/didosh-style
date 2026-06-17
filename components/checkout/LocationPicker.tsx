@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import dynamic from 'next/dynamic'
+
+const DeliveryMap = dynamic(() => import('./DeliveryMap'), { ssr: false })
 
 export interface LocationData {
   lat: number;
@@ -13,7 +16,7 @@ export interface LocationData {
 
 export interface LocationPickerProps {
   value: LocationData | null;
-  onChange: (location: LocationData) => void;
+  onChange: (location: LocationData | null) => void;
   error?: string;
 }
 
@@ -232,57 +235,48 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange, error 
         </div>
       )}
       {value && (
-        <div className="w-full flex flex-col items-center">
-          <div className="flex flex-col items-center mb-3">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <circle cx="16" cy="16" r="16" fill="#A7F3D0" />
-                <path
-                  d="M10 17l4 4 8-8"
-                  stroke="#059669"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+        <div className="w-full flex flex-col gap-3">
+
+          {/* ── Satellite map (only when real GPS coords are available) ── */}
+          {(value.lat !== 0 || value.lng !== 0) && (
+            <DeliveryMap lat={value.lat} lng={value.lng} />
+          )}
+
+          {/* ── Address text ── */}
+          <div className="text-center px-1">
+            <div className="font-semibold text-sm text-gray-900 leading-snug">
+              {value.address}
+            </div>
+            {value.city && value.city !== value.address && (
+              <div className="text-gray-500 text-xs mt-0.5">{value.city}</div>
+            )}
+          </div>
+
+          {/* ── Confirmed indicator ── */}
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M2.5 6.5l2.5 2.5 4.5-5" stroke="#059669" strokeWidth="1.5"
+                  strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <div className="text-green-700 font-bold text-lg">Manzil belgilandi ✓</div>
+            <span className="text-green-700 font-semibold text-sm">Manzil belgilandi ✓</span>
           </div>
-          <div className="text-center mb-2">
-            <div className="font-bold text-base text-gray-900">{value.address}</div>
-            <div className="text-gray-500 text-sm">{value.city}</div>
-          </div>
-          <div className="flex gap-2 mb-3">
-            {value.mapsLink && (
-              <a
-                href={value.mapsLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium"
-              >
-                Google Maps ↗
-              </a>
-            )}
-            {value.yandexLink && (
-              <a
-                href={value.yandexLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 font-medium"
-              >
-                Yandex Maps ↗
-              </a>
-            )}
-          </div>
+
+          {/* ── Change location button ── */}
           <button
-            className="btn btn-outline px-4 py-2 rounded-xl text-sm font-semibold"
+            type="button"
+            className="w-full py-2.5 rounded-xl border font-body font-semibold text-sm active:scale-95 transition-all duration-150"
+            style={{ borderColor: '#D4698A', color: '#D4698A' }}
             onClick={() => {
-              setManual(true);
-              setManualInput("");
+              setManual(false)
+              setManualInput('')
+              onChange(null)
             }}
           >
-            O&apos;zgartirish
+            Manzilni o&#39;zgartirish
           </button>
+
         </div>
       )}
       {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
