@@ -33,7 +33,7 @@ export default function DeliveryMap({ lat, lng }: DeliveryMapProps) {
       if (cancelled || !containerRef.current) return
 
       // Secondary guard: if Leaflet already owns this node (race in dev), bail
-      if ((containerRef.current as any)._leaflet_id != null) return
+      if ((containerRef.current as unknown as { _leaflet_id?: number })._leaflet_id != null) return
 
       const map = L.map(containerRef.current, {
         center:             [lat, lng],
